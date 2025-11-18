@@ -1,3 +1,7 @@
+<!-- Window Title -->
+<property name="windowTitle">
+    <string>Data Viewer</string>
+</property>
 <ui version="4.0">
  <class>DataViewer</class>
  <widget class="QWidget" name="DataViewer">
