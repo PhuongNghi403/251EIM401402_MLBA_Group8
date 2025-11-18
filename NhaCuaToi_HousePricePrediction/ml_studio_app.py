@@ -39,6 +39,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 
 
 class LoginDialog(QDialog):
@@ -97,6 +99,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.df: Optional[pd.DataFrame] = None
         self.model_default = None
         self.models_cache: Dict[str, object] = {}
+        self.train_results_cache: Dict[str, Dict[str, object]] = {}
         self.history_df: pd.DataFrame = pd.DataFrame(
             columns=["Time", "Input Summary", "Predicted Price", "Model", "User"]
         )
@@ -113,6 +116,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Matplotlib canvases
         self.canvas_compare, self.ax_compare = self._init_canvas_in(self.ui.chart_view_compare)
         self.canvas_history, self.ax_history = self._init_canvas_in(self.ui.chart_view_history)
+        self.compare_results_store: List[Tuple[str, float]] = []
+        self.selected_compare_model: Optional[str] = None
 
         # Theme state + icons
         self._theme_mode = "light"
@@ -169,6 +174,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ui.btn_quick_evaluate.clicked.connect(self.slot_quick_evaluate)
         if hasattr(self.ui, "btn_open_house_input_form"):
             self.ui.btn_open_house_input_form.clicked.connect(self.slot_open_house_input_form)
+        if hasattr(self.ui, "combo_trained_models"):
+            self.ui.combo_trained_models.currentTextChanged.connect(self.slot_select_trained_model)
+        # Row selection for comparison table
+        self.ui.table_model_comparison.itemSelectionChanged.connect(self.slot_compare_row_selected)
+        # Visual feedback: selected row in yellow
+        self.ui.table_model_comparison.setStyleSheet("QTableWidget::item:selected{background:#FFF59D;color:#2b2342;}")
 
     # --- Theme & Icons ---
     def _apply_theme(self, mode: str):
@@ -441,6 +452,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             X_all = df[feats]
             y_all = df[target].astype(float)
 
+        city_col = None
+        city_col = city_col or find_col("City")
+        city_all = df[city_col].astype(str) if city_col else pd.Series([""] * len(df), index=df.index)
+
         self.feature_names = feats
         self.target_name = target
 
@@ -448,6 +463,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             train_rate = 80
         test_size = 1 - train_rate / 100.0
         X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=test_size, random_state=42)
+        city_test = city_all.loc[y_test.index]
 
         if model_name == "LinearRegression":
             model = LinearRegression()
@@ -455,6 +471,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             model = RandomForestRegressor(n_estimators=200, random_state=42)
         elif model_name == "GradientBoosting":
             model = GradientBoostingRegressor(random_state=42)
+        elif model_name == "XGBoost":
+            model = XGBRegressor(random_state=42)
+        elif model_name == "LightGBM":
+            model = LGBMRegressor(random_state=42)
         else:
             self._error(f"Unsupported model: {model_name}")
             return None, {}, pd.DataFrame()
@@ -467,11 +487,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         r2 = float(r2_score(y_test, y_pred))
 
         metrics = {"MAE": mae, "RMSE": rmse, "R2": r2}
-        results_df = pd.DataFrame({"Giá trị thực": y_test.values, "Giá trị dự đoán": y_pred})
+        results_df = pd.DataFrame({"City": city_test.values, "Giá trị thực": y_test.values, "Giá trị dự đoán": y_pred})
 
         self.models_cache[model_name] = model
         self.current_model_name = model_name
         self.current_model_obj = model
+        self.train_results_cache[model_name] = {
+            "metrics": metrics,
+            "results_df": results_df,
+            "feature_names": self.feature_names.copy(),
+            "target": self.target_name,
+        }
+        self._populate_trained_models_combo()
 
         return model, metrics, results_df
 
@@ -489,11 +516,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         table = self.ui.table_train_results
         table.clearContents()
         table.setRowCount(len(results_df))
-        table.setColumnCount(2)
-        table.setHorizontalHeaderLabels(["Giá trị thực", "Giá trị dự đoán"])
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["City", "Giá trị thực", "Giá trị dự đoán"])
         for r in range(len(results_df)):
             table.setItem(r, 0, QTableWidgetItem(str(results_df.iloc[r, 0])))
             table.setItem(r, 1, QTableWidgetItem(str(results_df.iloc[r, 1])))
+            table.setItem(r, 2, QTableWidgetItem(str(results_df.iloc[r, 2])))
         table.resizeColumnsToContents()
 
     # ---------- Tab 3: Model Comparison ----------
@@ -512,7 +540,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ui.table_model_comparison.setColumnCount(4)
         self.ui.table_model_comparison.setHorizontalHeaderLabels(["Model", "MAE", "RMSE", "R²"])
 
-        model_list = ["LinearRegression", "RandomForest", "GradientBoosting"]
+        model_list = ["LinearRegression", "RandomForest", "GradientBoosting", "XGBoost", "LightGBM"]
         results_for_plot: List[Tuple[str, float]] = []
 
         train_rate = int(self.ui.spin_train_rate.value())
@@ -532,10 +560,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.ui.combo_set_default_model.addItem(name)
 
         self.ui.table_model_comparison.resizeColumnsToContents()
-        self.plot_comparison_chart(results_for_plot)
+        self.compare_results_store = results_for_plot
+        self.plot_comparison_chart(results_for_plot, selected_name=self.selected_compare_model)
         self.ui.txt_model_metrics.setPlainText("Completed model evaluation.")
+        self._populate_trained_models_combo()
 
-    def plot_comparison_chart(self, results: List[Tuple[str, float]]):
+    def plot_comparison_chart(self, results: List[Tuple[str, float]], selected_name: Optional[str] = None):
         self.ax_compare.clear()
         text_color = "#DDDDDD" if self._theme_mode == "dark" else "#2b2342"
         if not results:
@@ -544,13 +574,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             names = [r[0] for r in results]
             rmses = [r[1] for r in results]
             x = np.arange(len(names))
-            self.ax_compare.bar(x, rmses, color=self.compare_bar_color)
+            colors = [("#FFC107" if selected_name and n == selected_name else self.compare_bar_color) for n in names]
+            self.ax_compare.bar(x, rmses, color=colors)
             self.ax_compare.set_xticks(x)
             self.ax_compare.set_xticklabels(names, rotation=0, color=text_color)
             self.ax_compare.set_ylabel("RMSE")
-            self.ax_compare.set_title("RMSE comparison across models")
+            title = "RMSE comparison across models"
+            if selected_name:
+                title += f" (Selected: {selected_name})"
+            self.ax_compare.set_title(title)
             self.ax_compare.grid(axis="y", linestyle="--", alpha=0.4)
         self.canvas_compare.draw_idle()
+
+    def slot_compare_row_selected(self):
+        rows = self.ui.table_model_comparison.selectionModel().selectedRows()
+        if not rows:
+            self.selected_compare_model = None
+            self.plot_comparison_chart(self.compare_results_store, selected_name=None)
+            return
+        row = rows[0].row()
+        item = self.ui.table_model_comparison.item(row, 0)
+        if not item:
+            return
+        name = item.text().strip()
+        if not name:
+            return
+        self.selected_compare_model = name
+        self.plot_comparison_chart(self.compare_results_store, selected_name=name)
 
     def slot_set_default_model(self):
         name = self.ui.combo_set_default_model.currentText().strip()
@@ -631,6 +681,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QMessageBox.information(self, "Success", f"Exported: {path}")
         except Exception as e:
             self._error(f"CSV export error: {e}")
+
+    def _populate_trained_models_combo(self):
+        if not hasattr(self.ui, "combo_trained_models"):
+            return
+        existing = set(self._iter_combo_items(self.ui.combo_trained_models))
+        for name in self.train_results_cache.keys():
+            if name not in existing:
+                self.ui.combo_trained_models.addItem(name)
+        # Ensure current selection reflects latest trained model
+        if self.current_model_name:
+            idx = self.ui.combo_trained_models.findText(self.current_model_name)
+            if idx >= 0:
+                self.ui.combo_trained_models.setCurrentIndex(idx)
+
+    def _iter_combo_items(self, combo: QtWidgets.QComboBox):
+        return [combo.itemText(i) for i in range(combo.count())]
+
+    def slot_select_trained_model(self):
+        name = self.ui.combo_trained_models.currentText().strip()
+        if not name:
+            return
+        cached = self.train_results_cache.get(name)
+        if not cached:
+            return
+        self.current_model_name = name
+        self.feature_names = list(cached.get("feature_names", []))
+        self.target_name = cached.get("target")
+        metrics = cached.get("metrics", {})
+        results_df = cached.get("results_df")
+        if isinstance(results_df, pd.DataFrame):
+            self.display_train_results(self.models_cache.get(name), metrics, results_df)
 
     def _get_model_default_name(self) -> str:
         for name, obj in self.models_cache.items():

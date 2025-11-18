@@ -138,6 +138,16 @@ class Ui_MainWindow(object):
         self.btn_save_model.setSizePolicy(sizeFixed)
         self.vbox_metrics.addWidget(self.btn_save_model)
 
+        self.label_trained_models = QtWidgets.QLabel(parent=self.group_model_metrics)
+        self.label_trained_models.setObjectName("label_trained_models")
+        self.label_trained_models.setText("Chọn model đã huấn luyện:")
+        self.vbox_metrics.addWidget(self.label_trained_models)
+
+        self.combo_trained_models = QtWidgets.QComboBox(parent=self.group_model_metrics)
+        self.combo_trained_models.setObjectName("combo_trained_models")
+        self.combo_trained_models.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
+        self.vbox_metrics.addWidget(self.combo_trained_models)
+
         self.hbox_train_results.addWidget(self.group_model_metrics)
 
         self.group_train_results_table = QtWidgets.QGroupBox(parent=self.tab_train_results)
@@ -147,10 +157,11 @@ class Ui_MainWindow(object):
         self.table_train_results = QtWidgets.QTableWidget(parent=self.group_train_results_table)
         self.table_train_results.setObjectName("table_train_results")
         self.table_train_results.setSizePolicy(sizeExpand)
-        self.table_train_results.setColumnCount(2)
+        self.table_train_results.setColumnCount(3)
         self.table_train_results.setRowCount(0)
         self.table_train_results.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem())
         self.table_train_results.setHorizontalHeaderItem(1, QtWidgets.QTableWidgetItem())
+        self.table_train_results.setHorizontalHeaderItem(2, QtWidgets.QTableWidgetItem())
         self.vbox_train_table.addWidget(self.table_train_results)
 
         self.hbox_train_results.addWidget(self.group_train_results_table)

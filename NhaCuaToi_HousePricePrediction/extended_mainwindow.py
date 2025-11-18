@@ -35,6 +35,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 
 
 class LoginDialog(QDialog):
@@ -294,18 +296,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             feats = num_cols[:-1][:5]
             X_all = df[feats]
             y_all = df[target].astype(float)
+        city_col = None
+        def normalize(s: str) -> str:
+            return "".join(ch for ch in s.lower() if ch.isalnum())
+        norm_cols = {normalize(c): c for c in df.columns}
+        def find_col(name: str) -> Optional[str]:
+            key = normalize(name)
+            return norm_cols.get(key)
+        city_col = city_col or find_col("City")
+        city_all = df[city_col].astype(str) if city_col else pd.Series([""] * len(df), index=df.index)
         self.feature_names = feats
         self.target_name = target
         if train_rate is None:
             train_rate = 80
         test_size = 1 - train_rate / 100.0
         X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=test_size, random_state=42)
+        city_test = city_all.loc[y_test.index]
         if model_name == "LinearRegression":
             model = LinearRegression()
         elif model_name == "RandomForest":
             model = RandomForestRegressor(n_estimators=200, random_state=42)
         elif model_name == "GradientBoosting":
             model = GradientBoostingRegressor(random_state=42)
+        elif model_name == "XGBoost":
+            model = XGBRegressor(random_state=42)
+        elif model_name == "LightGBM":
+            model = LGBMRegressor(random_state=42)
         else:
             self._error(f"Model không hỗ trợ: {model_name}")
             return None, {}, pd.DataFrame()
@@ -315,7 +331,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
         r2 = float(r2_score(y_test, y_pred))
         metrics = {"MAE": mae, "RMSE": rmse, "R2": r2}
-        results_df = pd.DataFrame({"Giá trị thực": y_test.values, "Giá trị dự đoán": y_pred})
+        results_df = pd.DataFrame({"City": city_test.values, "Giá trị thực": y_test.values, "Giá trị dự đoán": y_pred})
         self.models_cache[model_name] = model
         self.current_model_name = model_name
         self.current_model_obj = model
@@ -334,11 +350,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         table = self.ui.table_train_results
         table.clearContents()
         table.setRowCount(len(results_df))
-        table.setColumnCount(2)
-        table.setHorizontalHeaderLabels(["Giá trị thực", "Giá trị dự đoán"])
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["City", "Giá trị thực", "Giá trị dự đoán"])
         for r in range(len(results_df)):
             table.setItem(r, 0, QTableWidgetItem(str(results_df.iloc[r, 0])))
             table.setItem(r, 1, QTableWidgetItem(str(results_df.iloc[r, 1])))
+            table.setItem(r, 2, QTableWidgetItem(str(results_df.iloc[r, 2])))
         table.resizeColumnsToContents()
 
     def slot_save_model(self):
@@ -372,7 +389,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ui.table_model_comparison.setRowCount(0)
         self.ui.combo_set_default_model.clear()
         self.ui.txt_model_metrics.setPlainText("Đang huấn luyện và đánh giá các model...")
-        model_list = ["LinearRegression", "RandomForest", "GradientBoosting"]
+        model_list = ["LinearRegression", "RandomForest", "GradientBoosting", "XGBoost", "LightGBM"]
         results_for_plot: List[Tuple[str, float]] = []
         train_rate = int(self.ui.spin_train_rate.value())
         for name in model_list:
