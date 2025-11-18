@@ -181,6 +181,9 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ui.table_model_comparison.itemSelectionChanged.connect(self.slot_compare_row_selected)
         # Visual feedback: selected row in yellow
         self.ui.table_model_comparison.setStyleSheet("QTableWidget::item:selected{background:#FFF59D;color:#2b2342;}")
+        self.ui.table_model_comparison.cellDoubleClicked.connect(self.slot_compare_row_double_clicked)
+        if hasattr(self.ui, "btn_open_city_price_map"):
+            self.ui.btn_open_city_price_map.clicked.connect(self.slot_open_city_price_map)
 
     # --- Theme & Icons ---
     def _apply_theme(self, mode: str):
@@ -603,6 +606,38 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.selected_compare_model = name
         self.plot_comparison_chart(self.compare_results_store, selected_name=name)
 
+    def slot_compare_row_double_clicked(self, row: int, col: int):
+        item = self.ui.table_model_comparison.item(row, 0)
+        if not item:
+            return
+        name = item.text().strip()
+        cached = self.train_results_cache.get(name)
+        model_obj = self.models_cache.get(name)
+        if not cached or model_obj is None:
+            return
+        dlg = ModelDetailsDialog(
+            self,
+            name,
+            model_obj,
+            cached.get("results_df"),
+            cached.get("feature_names", []),
+            getattr(self, "_theme_mode", "light"),
+            self.compare_bar_color,
+            self.history_line_color,
+        )
+        dlg.exec()
+
+    def slot_open_city_price_map(self):
+        path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_with_20_Random_Cities.csv")
+        if not os.path.isfile(path):
+            path = r"e:\251EIM401402_MLBA_Group8\NhaCuaToi_HousePricePrediction\data\SuperCleaned_with_20_Random_Cities.csv"
+        try:
+            df = pd.read_csv(path)
+        except Exception as e:
+            self._error(f"Không thể đọc dữ liệu bản đồ: {e}")
+            return
+        CityPriceMapDialog.open_with_df(self, df, getattr(self, "_theme_mode", "light"), self.compare_bar_color)
+
     def slot_set_default_model(self):
         name = self.ui.combo_set_default_model.currentText().strip()
         if not name:
@@ -1010,3 +1045,284 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             QMessageBox.information(self, "Thành công", f"Đã lưu model: {path}")
         except Exception as e:
             self._error(f"Lỗi lưu model: {e}")
+class ModelDetailsDialog(QDialog):
+    def __init__(self, parent, model_name: str, model_obj: object, results_df: pd.DataFrame, feature_names: List[str], theme_mode: str, bar_color: str, line_color: str):
+        super().__init__(parent)
+        self.setWindowTitle(f"Model Details: {model_name}")
+        self.model_name = model_name
+        self.model_obj = model_obj
+        self.results_df = results_df
+        self.feature_names = feature_names
+        self.theme_mode = theme_mode
+        self.bar_color = bar_color
+        self.line_color = line_color
+        layout = QVBoxLayout(self)
+        self.canvas1, self.ax1 = self._init_canvas()
+        self.canvas2, self.ax2 = self._init_canvas()
+        self.canvas3, self.ax3 = self._init_canvas()
+        layout.addWidget(self.canvas1)
+        layout.addWidget(self.canvas2)
+        layout.addWidget(self.canvas3)
+        self.setMinimumSize(900, 700)
+        self.resize(1000, 800)
+        self._draw_all()
+
+    def _init_canvas(self):
+        fig = Figure(figsize=(9, 5), tight_layout=True)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+        if self.theme_mode == "dark":
+            fig.set_facecolor("#221733")
+            ax.set_facecolor("#2d2046")
+            text_color = "#DDDDDD"
+        else:
+            fig.set_facecolor("#f8e1f4")
+            ax.set_facecolor("#ffffff")
+            text_color = "#2b2342"
+        ax.tick_params(colors=text_color, axis='x')
+        ax.tick_params(colors=text_color, axis='y')
+        ax.xaxis.label.set_color(text_color)
+        ax.yaxis.label.set_color(text_color)
+        ax.title.set_color(text_color)
+        return canvas, ax
+
+    def _draw_all(self):
+        y_true = self.results_df.iloc[:, 1].astype(float).values
+        y_pred = self.results_df.iloc[:, 2].astype(float).values
+        text_color = "#DDDDDD" if self.theme_mode == "dark" else "#2b2342"
+        self.ax1.clear()
+        self.ax1.scatter(y_true, y_pred, color=self.line_color, s=18)
+        min_v = float(min(np.min(y_true), np.min(y_pred)))
+        max_v = float(max(np.max(y_true), np.max(y_pred)))
+        self.ax1.plot([min_v, max_v], [min_v, max_v], color=self.bar_color, linestyle='--')
+        self.ax1.set_xlabel("Actual")
+        self.ax1.set_ylabel("Predicted")
+        self.ax1.set_title(f"Actual vs Predicted: {self.model_name}")
+        self.canvas1.draw_idle()
+
+        residuals = y_pred - y_true
+        self.ax2.clear()
+        self.ax2.hist(residuals, bins=20, color=self.bar_color, alpha=0.8)
+        self.ax2.set_xlabel("Residual")
+        self.ax2.set_ylabel("Count")
+        self.ax2.set_title("Residuals Distribution")
+        self.canvas2.draw_idle()
+
+        imp_names = list(self.feature_names)
+        imp_vals = None
+        if hasattr(self.model_obj, "feature_importances_"):
+            try:
+                imp_vals = list(np.array(getattr(self.model_obj, "feature_importances_"), dtype=float))
+            except Exception:
+                imp_vals = None
+        if imp_vals is None and hasattr(self.model_obj, "coef_"):
+            try:
+                coefs = np.ravel(getattr(self.model_obj, "coef_"))
+                imp_vals = list(np.abs(coefs))
+            except Exception:
+                imp_vals = None
+        if imp_vals is None or len(imp_vals) != len(imp_names):
+            imp_vals = [0.0] * len(imp_names)
+        self.ax3.clear()
+        x = np.arange(len(imp_names))
+        self.ax3.bar(x, imp_vals, color=self.bar_color)
+        self.ax3.set_xticks(x)
+        self.ax3.set_xticklabels(imp_names, rotation=0)
+        self.ax3.set_ylabel("Importance")
+        self.ax3.set_title("Feature Importance")
+        self.canvas3.draw_idle()
+
+class CityPriceMapDialog(QDialog):
+    def __init__(self, parent, df: pd.DataFrame, theme_mode: str, bar_color: str):
+        super().__init__(parent)
+        self.setWindowTitle("So sánh giá nhà theo các tỉnh thành trong nước")
+        self.theme_mode = theme_mode
+        self.bar_color = bar_color
+        layout = QVBoxLayout(self)
+        self.canvas, self.ax = self._init_canvas()
+        layout.addWidget(self.canvas)
+        self.setMinimumSize(900, 700)
+        self.resize(1000, 750)
+        self._draw_map(df)
+
+    @staticmethod
+    def open_with_df(parent, df: pd.DataFrame, theme_mode: str, bar_color: str):
+        dlg = CityPriceMapDialog(parent, df, theme_mode, bar_color)
+        dlg.exec()
+
+    def _init_canvas(self):
+        fig = Figure(figsize=(12, 7), tight_layout=True)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+        if self.theme_mode == "dark":
+            fig.set_facecolor("#221733")
+            ax.set_facecolor("#2d2046")
+            self.text_color = "#DDDDDD"
+        else:
+            fig.set_facecolor("#f8e1f4")
+            ax.set_facecolor("#ffffff")
+            self.text_color = "#2b2342"
+        ax.tick_params(colors=self.text_color, axis='x')
+        ax.tick_params(colors=self.text_color, axis='y')
+        ax.xaxis.label.set_color(self.text_color)
+        ax.yaxis.label.set_color(self.text_color)
+        ax.title.set_color(self.text_color)
+        return canvas, ax
+
+    def _normalize(self, s: str) -> str:
+        import unicodedata
+        s = (s or "").lower().strip()
+        s = unicodedata.normalize('NFD', s)
+        s = "".join(ch for ch in s if unicodedata.category(ch) != 'Mn')
+        s = s.replace(" ", "").replace(".", "")
+        return s
+
+    def _coords(self) -> Dict[str, Tuple[float, float]]:
+        d = {
+            "hanoi": (21.0278, 105.8342),
+            "namtuliem": (21.016, 105.78),
+            "haiphong": (20.844, 106.688),
+            "danang": (16.054, 108.202),
+            "tphcm": (10.823, 106.629),
+            "vinhlong": (10.256, 105.973),
+            "bentre": (10.241, 106.375),
+            "haigiang": (22.833, 104.983),
+            "yenbai": (21.700, 104.867),
+            "tuyenquang": (21.817, 105.217),
+            "sonla": (21.160, 103.767),
+            "hungyen": (20.646, 106.051),
+            "phutho": (21.300, 105.200),
+            "binhdinh": (13.782, 109.219),
+            "binhduong": (11.173, 106.673),
+            "binhthuan": (10.940, 108.100),
+            "lamdong": (11.946, 108.441),
+            "thuathienhue": (16.463, 107.590),
+            "baria vungtau": (10.411, 107.136),
+            "baria": (10.411, 107.136),
+            "vungtau": (10.411, 107.136),
+        }
+        # Normalize keys to ensure matching
+        return {self._normalize(k): v for k, v in d.items()}
+
+    def _draw_map(self, df: pd.DataFrame):
+        if "City" not in df.columns or "Price" not in df.columns:
+            self.ax.text(0.5, 0.5, "Thiếu cột City hoặc Price", ha="center", va="center", color=self.text_color)
+            self.canvas.draw_idle()
+            return
+        grouped = df.groupby("City")["Price"].mean().reset_index()
+        num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        feats = [c for c in num_cols if c.lower() != "price"]
+        if feats:
+            try:
+                from sklearn.linear_model import LinearRegression
+                m = LinearRegression()
+                X = df[feats]
+                y = df["Price"].astype(float)
+                m.fit(X, y)
+                yhat = m.predict(X)
+                grouped_pred = pd.DataFrame({"City": df["City"], "Pred": yhat}).groupby("City")["Pred"].mean().reset_index()
+            except Exception:
+                grouped_pred = grouped.rename(columns={"Price": "Pred"})
+        else:
+            grouped_pred = grouped.rename(columns={"Price": "Pred"})
+        merged = pd.merge(grouped, grouped_pred, on="City", how="left")
+        coords = self._coords()
+        xs, ys, vals, names = [], [], [], []
+        actuals, preds = [], []
+        for _, row in merged.iterrows():
+            name = str(row["City"]).strip()
+            key = self._normalize(name)
+            loc = coords.get(key)
+            if not loc:
+                if key.startswith("thua"):
+                    loc = coords.get(self._normalize("Thừa Thiên Huế"))
+                elif key in ("hochiminh", "thanhphohochiminh"):
+                    loc = coords.get("tphcm")
+            if not loc:
+                continue
+            lat, lon = loc
+            xs.append(lon)
+            ys.append(lat)
+            vals.append(float(row["Price"]))
+            actuals.append(float(row["Price"]))
+            preds.append(float(row.get("Pred", float(row["Price"]))))
+            names.append(name)
+        if not xs:
+            self.ax.text(0.5, 0.5, "Không tìm thấy toạ độ cho các tỉnh thành", ha="center", va="center", color=self.text_color)
+            self.canvas.draw_idle()
+            return
+        self.ax.set_xlim(102, 110)
+        self.ax.set_ylim(8, 23)
+        self.ax.grid(True, linestyle="--", alpha=0.3)
+        try:
+            from matplotlib.patches import Polygon
+            coast_path = [
+                (107.97, 21.50), (106.68, 20.85), (105.80, 19.80), (105.70, 18.70),
+                (106.60, 17.50), (107.60, 16.47), (108.20, 16.05), (109.22, 13.78),
+                (109.20, 12.25), (108.10, 10.93), (107.13, 10.41), (104.49, 10.38),
+                (105.15, 9.18)
+            ]
+            west_border = [
+                (105.10, 10.70), (105.30, 11.50), (105.70, 12.50), (105.90, 13.50),
+                (106.00, 14.50), (105.80, 15.50), (105.70, 16.50), (105.50, 17.50),
+                (105.40, 18.50), (105.30, 19.50), (104.00, 21.20), (103.00, 21.40),
+                (103.96, 22.50), (106.75, 21.85), (107.97, 21.50)
+            ]
+            poly_pts = coast_path + west_border
+            land_color = "#e6f2ff" if self.theme_mode != "dark" else "#2a2550"
+            edge_color = "#93c0ff" if self.theme_mode != "dark" else "#cbbef5"
+            self.ax.add_patch(Polygon(poly_pts, closed=True, facecolor=land_color, edgecolor=edge_color, linewidth=1.0, alpha=0.6))
+        except Exception:
+            pass
+        sc = self.ax.scatter(xs, ys, c=vals, cmap="Blues", s=220, edgecolors='k', linewidths=0.5)
+        for x, y, name in zip(xs, ys, names):
+            self.ax.text(x + 0.1, y + 0.1, name, fontsize=9, color=self.text_color)
+        cb = self.canvas.figure.colorbar(sc, ax=self.ax)
+        cb.set_label("Giá trung bình", color=self.text_color)
+        cb.ax.yaxis.set_tick_params(color=self.text_color)
+        for lbl in cb.ax.get_yticklabels():
+            lbl.set_color(self.text_color)
+        self.ax.set_xlabel("Kinh độ")
+        self.ax.set_ylabel("Vĩ độ")
+        self.ax.set_title("So sánh giá nhà theo các tỉnh thành trong nước")
+        self._points_data = {"xs": xs, "ys": ys, "names": names, "actuals": actuals, "preds": preds}
+        self.annot = self.ax.annotate("", xy=(0, 0), xytext=(10, 10), textcoords="offset points", bbox=dict(boxstyle="round", fc="#fff8dc", ec="k", alpha=0.9))
+        self.annot.set_visible(False)
+        self.cid_hover = self.canvas.mpl_connect("motion_notify_event", self._on_mouse_move)
+        self.canvas.draw_idle()
+
+    def _on_mouse_move(self, event):
+        if not hasattr(self, "_points_data"):
+            return
+        if event.inaxes != self.ax:
+            self.annot.set_visible(False)
+            self.canvas.draw_idle()
+            return
+        xs = self._points_data["xs"]
+        ys = self._points_data["ys"]
+        names = self._points_data["names"]
+        actuals = self._points_data["actuals"]
+        preds = self._points_data["preds"]
+        trans = self.ax.transData.transform
+        pos = np.array([event.x, event.y])
+        dists = []
+        for i in range(len(xs)):
+            pt = trans((xs[i], ys[i]))
+            dists.append(np.hypot(*(pt - pos)))
+        if not dists:
+            self.annot.set_visible(False)
+            self.canvas.draw_idle()
+            return
+        i = int(np.argmin(dists))
+        if dists[i] < 20:
+            self.annot.xy = (xs[i], ys[i])
+            txt = f"{names[i]}\nGiá thực tế: {actuals[i]:.4f}\nGiá dự đoán: {preds[i]:.4f}"
+            self.annot.set_text(txt)
+            fc = "#FFF59D" if self.theme_mode != "dark" else "#4a3976"
+            ec = "#2b2342" if self.theme_mode != "dark" else "#DDDDDD"
+            self.annot.get_bbox_patch().set_facecolor(fc)
+            self.annot.get_bbox_patch().set_edgecolor(ec)
+            self.annot.set_visible(True)
+        else:
+            self.annot.set_visible(False)
+        self.canvas.draw_idle()

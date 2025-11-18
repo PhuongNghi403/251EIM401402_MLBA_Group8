@@ -230,6 +230,10 @@ class Ui_MainWindow(object):
 
         self.vbox_analysis_charts.addWidget(self.group_chart_residuals)
 
+        self.btn_open_city_price_map = QtWidgets.QPushButton(parent=self.group_analysis_charts)
+        self.btn_open_city_price_map.setText("Mở bản đồ giá theo tỉnh thành")
+        self.vbox_analysis_charts.addWidget(self.btn_open_city_price_map)
+
         self.hbox_compare.addWidget(self.group_analysis_charts)
         self.hbox_compare.setStretch(0, 2)
         self.hbox_compare.setStretch(1, 1)
