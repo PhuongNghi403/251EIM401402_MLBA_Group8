@@ -1,9 +1,9 @@
 import sys
 from PyQt6.QtWidgets import QApplication
-from ml_studio_app import MainWindow
+from login_app import LoginWindow
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = MainWindow()
+    win = LoginWindow()
     win.show()
     sys.exit(app.exec())

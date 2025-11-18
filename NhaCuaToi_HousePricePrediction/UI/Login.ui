@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Login</class>
+ <widget class="QWidget" name="Login">
+  <property name="windowTitle">
+   <string>Login</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_root">
+   <item>
+    <layout class="QVBoxLayout" name="vbox_center">
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <item>
+      <widget class="QLabel" name="lbl_title">
+       <property name="text">
+        <string>ML Price Predictor</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="txt_username">
+       <property name="placeholderText">
+        <string>Username</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="txt_password">
+       <property name="placeholderText">
+        <string>Password</string>
+       </property>
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <!-- THÊM: Chọn vai trò giống LoginDialog trước đây -->
+     <item>
+      <widget class="QLabel" name="lbl_role">
+       <property name="text">
+        <string>Vai trò</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="combo_role">
+       <item><property name="text"><string>customer</string></property></item>
+       <item><property name="text"><string>admin</string></property></item>
+      </widget>
+     </item>
+     <!-- Nút Login -->
+     <item>
+      <widget class="QPushButton" name="btn_login">
+       <property name="text">
+        <string>Login</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

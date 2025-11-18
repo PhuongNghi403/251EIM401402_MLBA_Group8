@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CustomerHome</class>
+ <widget class="QMainWindow" name="CustomerHome">
+  <property name="windowTitle">
+   <string>Customer - ML Price Predictor</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_central">
+    <item>
+     <layout class="QHBoxLayout" name="hbox_topbar">
+      <item>
+       <spacer name="spacer_topbar">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_logout">
+        <property name="text">
+         <string>Logout</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="tabPosition">
+       <enum>QTabWidget::North</enum>
+      </property>
+      <widget class="QWidget" name="tab_predict">
+       <attribute name="title">
+        <string>Dự đoán Giá</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="hbox_predict">
+        <item>
+         <widget class="QGroupBox" name="group_input_house">
+          <property name="title">
+           <string>Input Features</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_inputs">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_area_income">
+             <property name="text"><string>Avg Area Income</string></property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="input_area_income"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_house_age">
+             <property name="text"><string>Avg Area House Age</string></property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="input_house_age"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_num_rooms">
+             <property name="text"><string>Avg Area Number of Rooms</string></property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="input_num_rooms"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_num_bedrooms">
+             <property name="text"><string>Avg Area Number of Bedrooms</string></property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="input_num_bedrooms"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_population">
+             <property name="text"><string>Area Population</string></property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="input_population"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="group_predict_actions">
+          <property name="title">
+           <string>Actions</string>
+          </property>
+          <layout class="QVBoxLayout" name="vbox_predict_actions">
+           <item>
+            <widget class="QPushButton" name="btn_predict">
+             <property name="text"><string>Predict Price</string></property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_prediction_result">
+             <property name="text"><string>...</string></property>
+             <property name="alignment"><set>Qt::AlignCenter</set></property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btn_export_report">
+             <property name="text"><string>Export Report (CSV)</string></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_history">
+       <attribute name="title">
+        <string>Lịch sử Dự đoán</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="vbox_history">
+        <item>
+         <widget class="QGroupBox" name="group_history_chart">
+          <property name="title"><string>Trend</string></property>
+          <layout class="QVBoxLayout" name="vbox_history_chart">
+           <item>
+            <widget class="QWidget" name="chart_view_history"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="group_history_details">
+          <property name="title"><string>Details</string></property>
+          <layout class="QVBoxLayout" name="vbox_history_details">
+           <item>
+            <widget class="QTableWidget" name="table_history"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar"/>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

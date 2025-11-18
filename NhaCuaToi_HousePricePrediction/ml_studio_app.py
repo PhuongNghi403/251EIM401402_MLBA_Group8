@@ -42,6 +42,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 
+from SharedLogic import PredictionLogicMixin
 
 class LoginDialog(QDialog):
     def __init__(self, parent=None):
@@ -85,11 +86,13 @@ class LoginDialog(QDialog):
                 self.password_edit.setText("admin")
 
 
-class MainWindow(QMainWindow, Ui_MainWindow):
+# class MainWindow: thêm kế thừa Mixin và khởi tạo mixin
+class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
     def __init__(self):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        PredictionLogicMixin.__init__(self)
 
         # Clear default status text from UI design
         if hasattr(self.ui, "lbl_status_tab1"):
@@ -126,8 +129,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Signal connections
         self._connect_signals()
-
-        self._show_login_and_apply_role()
 
     # ---------- UI wiring helpers ----------
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:
@@ -799,6 +800,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.current_user = dlg.username
             self.current_role = dlg.role
+
+            # Nếu là customer: mở giao diện riêng, đóng MainWindow để tránh conflict
+            if self.current_role == "customer":
+                from customer_app import CustomerWindow
+                cust = CustomerWindow(username=self.current_user)
+
+                # Đồng bộ theme và chia sẻ lịch sử
+                try:
+                    cust._theme_mode = getattr(self, "_theme_mode", "light")
+                    cust._apply_theme(cust._theme_mode)
+                except Exception:
+                    pass
+                try:
+                    cust.history_df = self.history_df
+                except Exception:
+                    pass
+
+                cust.show()
+                self.close()
+                return
+
+            # Admin: giữ nguyên 5 tab như cũ
             self.apply_role_permissions()
             try:
                 self.update_current_model_info()
