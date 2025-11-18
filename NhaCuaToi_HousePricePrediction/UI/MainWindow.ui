@@ -21,6 +21,27 @@
      <right>8</right>
      <bottom>8</bottom>
     </property>
+    <!-- THÊM: Thanh Toggle Theme ở trên cùng -->
+    <item>
+     <layout class="QHBoxLayout" name="hbox_theme_toggle">
+      <item>
+       <spacer name="spacer_theme_toggle">
+        <property name="orientation"><enum>Qt::Horizontal</enum></property>
+        <property name="sizeType"><enum>QSizePolicy::Expanding</enum></property>
+        <property name="sizeHint"><size><width>40</width><height>20</height></size></property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_toggle_theme">
+        <property name="text"><string>Toggle Theme</string></property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed"><horstretch>0</horstretch><verstretch>0</verstretch></sizepolicy>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <!-- TabWidget giữ nguyên -->
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="tabPosition">
@@ -30,502 +51,114 @@
        <bool>true</bool>
       </property>
 
-      <!-- Tab 1: Dataset -->
+      <!-- Tab: Dataset -->
       <widget class="QWidget" name="tab_dataset">
-       <attribute name="title">
-        <string>Dataset</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_tab1">
-        <property name="spacing">
-         <number>8</number>
-        </property>
-        <property name="stretch">
-         <string>0,1,0</string>
-        </property>
-        <item>
-         <widget class="QGroupBox" name="group_dataset_config">
-          <property name="title">
-           <string>1. Tải Dữ liệu &amp; Cấu hình</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_dataset_config">
-           <property name="columnStretch">
-            <string>0,1,0</string>
-           </property>
-           <property name="horizontalSpacing">
-            <number>8</number>
-           </property>
-           <property name="verticalSpacing">
-            <number>6</number>
-           </property>
-
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_choose_dataset">
-             <property name="text">
-              <string>Chọn Dataset:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QComboBox" name="combo_dataset">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="2">
-            <widget class="QPushButton" name="btn_pick_dataset">
-             <property name="text">
-              <string>Chọn File...</string>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_train_rate">
-             <property name="text">
-              <string>Tỉ lệ Train (%):</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QSpinBox" name="spin_train_rate">
-             <property name="minimum">
-              <number>50</number>
-             </property>
-             <property name="maximum">
-              <number>95</number>
-             </property>
-             <property name="value">
-              <number>80</number>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QPushButton" name="btn_load_and_train">
-             <property name="text">
-              <string>Tải &amp; Huấn luyện</string>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-
-        <item>
-         <widget class="QGroupBox" name="group_dataset_preview">
-          <property name="title">
-           <string>2. Xem trước Dữ liệu</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_preview">
-           <property name="stretch">
-            <string>1</string>
-           </property>
-           <item>
-            <widget class="QTableWidget" name="table_dataset_preview">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>1</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="columnCount">
-              <number>0</number>
-             </property>
-             <property name="rowCount">
-              <number>0</number>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-
-        <item>
-         <widget class="QLabel" name="lbl_status_tab1">
-          <property name="text">
-           <string>Sẵn sàng.</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <property name="title"><string>Dataset</string></property>
+       <!-- 1. Load & Configure -->
+       <widget class="QGroupBox" name="group_load_config">
+        <property name="title"><string>1. Load Data &amp; Configure</string></property>
+       </widget>
+       <!-- Labels and buttons -->
+       <widget class="QLabel" name="label_choose_dataset">
+        <property name="text"><string>Select Dataset:</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_pick_dataset">
+        <property name="text"><string>Choose File...</string></property>
+       </widget>
+       <widget class="QLabel" name="label_train_rate">
+        <property name="text"><string>Train Split (%):</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_load_and_train">
+        <property name="text"><string>Load &amp; Train</string></property>
+       </widget>
+       <!-- 2. Preview Data -->
+       <widget class="QGroupBox" name="group_preview">
+        <property name="title"><string>2. Preview Data</string></property>
+       </widget>
       </widget>
 
       <!-- Tab 2: Kết quả Huấn luyện -->
       <widget class="QWidget" name="tab_train_results">
-       <attribute name="title">
-        <string>Kết quả Huấn luyện</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="hbox_train_results">
-        <property name="spacing">
-         <number>8</number>
-        </property>
-        <property name="stretch">
-         <string>1,2</string>
-        </property>
-
-        <item>
-         <widget class="QGroupBox" name="group_model_metrics">
-          <property name="title">
-           <string>Thông số Mô hình (Default: Linear Regression)</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_metrics">
-           <property name="stretch">
-            <string>1,0</string>
-           </property>
-           <item>
-            <widget class="QTextEdit" name="txt_model_metrics">
-             <property name="readOnly">
-              <bool>true</bool>
-             </property>
-             <property name="placeholderText">
-              <string>Coefficients, MAE, RMSE, R²...</string>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>1</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="btn_save_model">
-             <property name="text">
-              <string>Lưu Model này</string>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-
-        <item>
-         <widget class="QGroupBox" name="group_train_results_table">
-          <property name="title">
-           <string>Bảng So sánh Kết quả (Tập Test)</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_train_table">
-           <property name="stretch">
-            <string>1</string>
-           </property>
-           <item>
-            <widget class="QTableWidget" name="table_train_results">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>1</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="columnCount">
-              <number>2</number>
-             </property>
-             <property name="rowCount">
-              <number>0</number>
-             </property>
-             <column>
-              <property name="text">
-               <string>Giá trị thực</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Giá trị dự đoán</string>
-              </property>
-             </column>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
+       <property name="title"><string>Training Results</string></property>
+       <widget class="QGroupBox" name="group_train_metrics">
+        <property name="title"><string>Model Metrics (Default: Linear Regression)</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_save_model">
+        <property name="text"><string>Save This Model</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_train_results_table">
+        <property name="title"><string>Test Set Results Table</string></property>
+       </widget>
+       <widget class="QTableWidget" name="table_train_results">
+        <column><property name="text"><string>Actual Value</string></property></column>
+        <column><property name="text"><string>Predicted Value</string></property></column>
+       </widget>
       </widget>
 
       <!-- Tab 3: So sánh Model -->
       <widget class="QWidget" name="tab_model_compare">
-       <attribute name="title">
-        <string>So sánh Model</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="hbox_compare">
-        <property name="spacing">
-         <number>8</number>
-        </property>
-        <property name="stretch">
-         <string>2,1</string>
-        </property>
-
-        <item>
-         <widget class="QGroupBox" name="group_run_select_model">
-          <property name="title">
-           <string>Chạy &amp; Chọn Model</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_run_select">
-           <property name="stretch">
-            <string>0,1,0,0</string>
-           </property>
-           <item>
-            <widget class="QPushButton" name="btn_evaluate_all_models">
-             <property name="text">
-              <string>Chạy Đánh giá Tất cả Model</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QTableWidget" name="table_model_comparison">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>1</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="columnCount">
-              <number>4</number>
-             </property>
-             <property name="rowCount">
-              <number>0</number>
-             </property>
-             <column><property name="text"><string>Model</string></property></column>
-             <column><property name="text"><string>MAE</string></property></column>
-             <column><property name="text"><string>RMSE</string></property></column>
-             <column><property name="text"><string>R²</string></property></column>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_choose_best_model">
-             <property name="text">
-              <string>Chọn Model Tốt nhất (dùng cho Dự đoán):</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="combo_set_default_model">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed"/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-
-        <item>
-         <widget class="QGroupBox" name="group_analysis_charts">
-          <property name="title">
-           <string>Biểu đồ Phân tích</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_analysis_charts">
-           <property name="stretch">
-            <string>1,1</string>
-           </property>
-
-           <item>
-            <widget class="QGroupBox" name="group_chart_compare">
-             <property name="title">
-              <string>Biểu đồ So sánh MAE/RMSE</string>
-             </property>
-             <layout class="QVBoxLayout" name="vbox_chart_compare">
-              <item>
-               <widget class="QWidget" name="chart_view_compare">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding"/>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-
-           <item>
-            <widget class="QGroupBox" name="group_chart_residuals">
-             <property name="title">
-              <string>Biểu đồ Phân phối Residuals (Model Mặc định)</string>
-             </property>
-             <layout class="QVBoxLayout" name="vbox_chart_residuals">
-              <item>
-               <widget class="QWidget" name="chart_view_residuals_compare">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding"/>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-
-          </layout>
-         </widget>
-        </item>
-       </layout>
+       <property name="title"><string>Model Comparison</string></property>
+       <widget class="QGroupBox" name="group_run_select_model">
+        <property name="title"><string>Run &amp; Select Model</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_evaluate_all_models">
+        <property name="text"><string>Evaluate All Models</string></property>
+       </widget>
+       <widget class="QLabel" name="label_choose_best_model">
+        <property name="text"><string>Choose Best Model (for Prediction):</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_analysis_charts">
+        <property name="title"><string>Analysis Charts</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_chart_compare">
+        <property name="title"><string>MAE/RMSE Comparison Chart</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_chart_residuals">
+        <property name="title"><string>Residuals Distribution (Default Model)</string></property>
+       </widget>
       </widget>
 
       <!-- Tab 4: Dự đoán Giá -->
       <widget class="QWidget" name="tab_predict">
-       <attribute name="title">
-        <string>Dự đoán Giá</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="hbox_predict">
-        <property name="spacing">
-         <number>8</number>
-        </property>
-        <property name="stretch">
-         <string>1,2</string>
-        </property>
-
-        <item>
-         <widget class="QGroupBox" name="group_input_house">
-          <property name="title">
-           <string>Nhập thông tin nhà</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_inputs">
-           <item row="0" column="0"><widget class="QLabel" name="label_income"><property name="text"><string>Avg. Area Income:</string></property></widget></item>
-           <item row="0" column="1"><widget class="QLineEdit" name="input_area_income"><property name="placeholderText"><string>e.g., 65000</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-
-           <item row="1" column="0"><widget class="QLabel" name="label_house_age"><property name="text"><string>Avg. Area House Age:</string></property></widget></item>
-           <item row="1" column="1"><widget class="QLineEdit" name="input_house_age"><property name="placeholderText"><string>e.g., 5.2</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-
-           <item row="2" column="0"><widget class="QLabel" name="label_num_rooms"><property name="text"><string>Avg. Area Number of Rooms:</string></property></widget></item>
-           <item row="2" column="1"><widget class="QLineEdit" name="input_num_rooms"><property name="placeholderText"><string>e.g., 6.0</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-
-           <item row="3" column="0"><widget class="QLabel" name="label_num_bedrooms"><property name="text"><string>Avg. Area Number of Bedrooms:</string></property></widget></item>
-           <item row="3" column="1"><widget class="QLineEdit" name="input_num_bedrooms"><property name="placeholderText"><string>e.g., 3.0</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-
-           <item row="4" column="0"><widget class="QLabel" name="label_population"><property name="text"><string>Area Population:</string></property></widget></item>
-           <item row="4" column="1"><widget class="QLineEdit" name="input_population"><property name="placeholderText"><string>e.g., 300000</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-          </layout>
-         </widget>
-        </item>
-
-        <item>
-         <widget class="QGroupBox" name="group_predict_actions">
-          <property name="title">
-           <string>Kết quả &amp; Tác vụ</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_predict_actions">
-           <property name="stretch">
-            <string>0,0,0,1,0</string>
-           </property>
-
-           <item>
-            <widget class="QGroupBox" name="group_current_model">
-             <property name="title">
-              <string>Thông tin Model Đang Dùng</string>
-             </property>
-             <layout class="QVBoxLayout" name="vbox_current_model">
-              <item><widget class="QLabel" name="lbl_current_model"><property name="text"><string>Model:</string></property></widget></item>
-              <item><widget class="QLabel" name="lbl_current_model_mae"><property name="text"><string>MAE:</string></property></widget></item>
-              <item><widget class="QLabel" name="lbl_current_model_rmse"><property name="text"><string>RMSE:</string></property></widget></item>
-             </layout>
-            </widget>
-           </item>
-
-           <item><widget class="QPushButton" name="btn_predict"><property name="text"><string>Dự đoán Giá</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-           <item><widget class="QLabel" name="label_pred_price"><property name="text"><string>Giá dự đoán:</string></property></widget></item>
-           <item>
-            <widget class="QLabel" name="lbl_prediction_result">
-             <property name="text"><string>...</string></property>
-             <property name="font"><font><pointsize>24</pointsize><bold>true</bold></font></property>
-             <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property>
-            </widget>
-           </item>
-           <item><widget class="QPushButton" name="btn_export_report"><property name="text"><string>Xuất Báo cáo (PDF/CSV)</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
+       <property name="title"><string>Price Prediction</string></property>
+       <widget class="QGroupBox" name="group_predict_inputs">
+        <property name="title"><string>Enter House Features</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_predict_actions">
+        <property name="title"><string>Results &amp; Actions</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_predict">
+        <property name="text"><string>Predict Price</string></property>
+       </widget>
+       <widget class="QLabel" name="label_pred_price">
+        <property name="text"><string>Predicted Price:</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_export_report">
+        <property name="text"><string>Export Report (CSV)</string></property>
+       </widget>
       </widget>
 
-      <!-- Tab 5: Lịch sử Dự đoán -->
+      <!-- Tab 5: Prediction History -->
       <widget class="QWidget" name="tab_history">
-       <attribute name="title">
-        <string>Lịch sử Dự đoán</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="vbox_history">
-        <property name="spacing">
-         <number>8</number>
-        </property>
-        <property name="stretch">
-         <string>2,1</string>
-        </property>
-
-        <item>
-         <widget class="QGroupBox" name="group_history_chart">
-          <property name="title">
-           <string>Biểu đồ Xu hướng Lịch sử</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_history_chart">
-           <property name="stretch"><string>1</string></property>
-           <item>
-            <widget class="QWidget" name="chart_view_history">
-             <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Expanding"/></property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-
-        <item>
-         <widget class="QGroupBox" name="group_history_details">
-          <property name="title">
-           <string>Chi tiết Lịch sử</string>
-          </property>
-          <layout class="QVBoxLayout" name="vbox_history_details">
-           <property name="stretch"><string>1,0</string></property>
-
-           <item>
-            <widget class="QTableWidget" name="table_history">
-             <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Expanding"/></property>
-             <property name="columnCount"><number>4</number></property>
-             <property name="rowCount"><number>0</number></property>
-             <column><property name="text"><string>Time</string></property></column>
-             <column><property name="text"><string>Input Summary</string></property></column>
-             <column><property name="text"><string>Predicted Price</string></property></column>
-             <column><property name="text"><string>Model</string></property></column>
-            </widget>
-           </item>
-
-           <item>
-            <widget class="QGroupBox" name="group_history_actions">
-             <property name="title"><string>Tác vụ</string></property>
-             <layout class="QHBoxLayout" name="hbox_history_actions">
-              <property name="stretch"><string>1,1,1</string></property>
-              <item><widget class="QPushButton" name="btn_delete_history"><property name="text"><string>Xóa mục đã chọn</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-              <item><widget class="QPushButton" name="btn_clear_history"><property name="text"><string>Xóa tất cả</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-              <item><widget class="QPushButton" name="btn_export_history"><property name="text"><string>Xuất Lịch sử (CSV)</string></property><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"/></property></widget></item>
-             </layout>
-            </widget>
-           </item>
-
-          </layout>
-         </widget>
-        </item>
-
-       </layout>
+       <property name="title"><string>Prediction History</string></property>
+       <widget class="QGroupBox" name="group_history_chart">
+        <property name="title"><string>History Trend Chart</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_history_details">
+        <property name="title"><string>History Details</string></property>
+       </widget>
+       <widget class="QGroupBox" name="group_history_actions">
+        <property name="title"><string>Actions</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_delete_history">
+        <property name="text"><string>Delete Selected</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_clear_history">
+        <property name="text"><string>Clear All</string></property>
+       </widget>
+       <widget class="QPushButton" name="btn_export_history">
+        <property name="text"><string>Export History (CSV)</string></property>
+       </widget>
       </widget>
 
      </widget>

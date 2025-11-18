@@ -17,6 +17,19 @@ class Ui_MainWindow(object):
         self.verticalLayout_central.setContentsMargins(8, 8, 8, 8)
         self.verticalLayout_central.setObjectName("verticalLayout_central")
 
+        # THÊM: HBox ở trên cùng, chứa nút Toggle Theme
+        self.hbox_theme_toggle = QtWidgets.QHBoxLayout()
+        self.hbox_theme_toggle.setObjectName("hbox_theme_toggle")
+        self.hbox_theme_toggle.addItem(
+            QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        )
+        self.btn_toggle_theme = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.btn_toggle_theme.setObjectName("btn_toggle_theme")
+        self.btn_toggle_theme.setText("Toggle Theme")
+        self.hbox_theme_toggle.addWidget(self.btn_toggle_theme)
+        self.verticalLayout_central.addLayout(self.hbox_theme_toggle)
+
+        # QTabWidget như cũ
         self.tabWidget = QtWidgets.QTabWidget(parent=self.centralwidget)
         self.tabWidget.setObjectName("tabWidget")
         self.tabWidget.setTabPosition(QtWidgets.QTabWidget.TabPosition.North)
@@ -38,7 +51,7 @@ class Ui_MainWindow(object):
 
         self.label_choose_dataset = QtWidgets.QLabel(parent=self.group_dataset_config)
         self.label_choose_dataset.setObjectName("label_choose_dataset")
-        self.label_choose_dataset.setText("Chọn Dataset:")
+        self.label_choose_dataset.setText("Select Dataset:")
         self.gridLayout_dataset_config.addWidget(self.label_choose_dataset, 0, 0, 1, 1)
 
         self.combo_dataset = QtWidgets.QComboBox(parent=self.group_dataset_config)
@@ -49,7 +62,7 @@ class Ui_MainWindow(object):
         sizeFixed = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_pick_dataset = QtWidgets.QPushButton(parent=self.group_dataset_config)
         self.btn_pick_dataset.setObjectName("btn_pick_dataset")
-        self.btn_pick_dataset.setText("Chọn File...")
+        self.btn_pick_dataset.setText("Choose File...")
         self.btn_pick_dataset.setSizePolicy(sizeFixed)
         self.gridLayout_dataset_config.addWidget(self.btn_pick_dataset, 0, 2, 1, 1)
 
@@ -95,7 +108,8 @@ class Ui_MainWindow(object):
 
         self.lbl_status_tab1 = QtWidgets.QLabel(parent=self.tab_dataset)
         self.lbl_status_tab1.setObjectName("lbl_status_tab1")
-        self.lbl_status_tab1.setText("Sẵn sàng.")
+        # ĐỔI TEXT: để trống
+        self.lbl_status_tab1.setText("")
         self.verticalLayout_tab1.addWidget(self.lbl_status_tab1)
 
         self.verticalLayout_tab1.setStretch(0, 0)
@@ -127,7 +141,7 @@ class Ui_MainWindow(object):
         self.hbox_train_results.addWidget(self.group_model_metrics)
 
         self.group_train_results_table = QtWidgets.QGroupBox(parent=self.tab_train_results)
-        self.group_train_results_table.setTitle("Bảng So sánh Kết quả (Tập Test)")
+        self.group_train_results_table.setTitle("Test Set Results Table")
         self.vbox_train_table = QtWidgets.QVBoxLayout(self.group_train_results_table)
 
         self.table_train_results = QtWidgets.QTableWidget(parent=self.group_train_results_table)
@@ -152,11 +166,11 @@ class Ui_MainWindow(object):
         self.hbox_compare = QtWidgets.QHBoxLayout(self.tab_model_compare)
 
         self.group_run_select_model = QtWidgets.QGroupBox(parent=self.tab_model_compare)
-        self.group_run_select_model.setTitle("Chạy & Chọn Model")
+        self.group_run_select_model.setTitle("Run & Select Model")
         self.vbox_run_select = QtWidgets.QVBoxLayout(self.group_run_select_model)
 
         self.btn_evaluate_all_models = QtWidgets.QPushButton(parent=self.group_run_select_model)
-        self.btn_evaluate_all_models.setText("Chạy Đánh giá Tất cả Model")
+        self.btn_evaluate_all_models.setText("Evaluate All Models")
         self.vbox_run_select.addWidget(self.btn_evaluate_all_models)
 
         self.table_model_comparison = QtWidgets.QTableWidget(parent=self.group_run_select_model)
@@ -169,7 +183,7 @@ class Ui_MainWindow(object):
         self.vbox_run_select.addWidget(self.table_model_comparison)
 
         self.label_choose_best_model = QtWidgets.QLabel(parent=self.group_run_select_model)
-        self.label_choose_best_model.setText("Chọn Model Tốt nhất (dùng cho Dự đoán):")
+        self.label_choose_best_model.setText("Choose Best Model (for Prediction):")
         self.vbox_run_select.addWidget(self.label_choose_best_model)
 
         self.combo_set_default_model = QtWidgets.QComboBox(parent=self.group_run_select_model)
@@ -291,12 +305,12 @@ class Ui_MainWindow(object):
         self.vbox_predict_actions.addWidget(self.btn_quick_evaluate)
 
         self.btn_predict = QtWidgets.QPushButton(parent=self.group_predict_actions)
-        self.btn_predict.setText("Dự đoán Giá")
+        self.btn_predict.setText("Predict Price")
         self.btn_predict.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.vbox_predict_actions.addWidget(self.btn_predict)
 
         self.label_pred_price = QtWidgets.QLabel(parent=self.group_predict_actions)
-        self.label_pred_price.setText("Giá dự đoán:")
+        self.label_pred_price.setText("Predicted Price:")
         self.vbox_predict_actions.addWidget(self.label_pred_price)
 
         self.lbl_prediction_result = QtWidgets.QLabel(parent=self.group_predict_actions)
@@ -309,7 +323,7 @@ class Ui_MainWindow(object):
         self.vbox_predict_actions.addWidget(self.lbl_prediction_result)
 
         self.btn_export_report = QtWidgets.QPushButton(parent=self.group_predict_actions)
-        self.btn_export_report.setText("Xuất Báo cáo (PDF/CSV)")
+        self.btn_export_report.setText("Export Report (CSV)")
         self.btn_export_report.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.vbox_predict_actions.addWidget(self.btn_export_report)
 
@@ -337,7 +351,7 @@ class Ui_MainWindow(object):
         self.vbox_history = QtWidgets.QVBoxLayout(self.tab_history)
 
         self.group_history_chart = QtWidgets.QGroupBox(parent=self.tab_history)
-        self.group_history_chart.setTitle("Biểu đồ Xu hướng Lịch sử")
+        self.group_history_chart.setTitle("History Trend Chart")
         self.vbox_history_chart = QtWidgets.QVBoxLayout(self.group_history_chart)
         self.chart_view_history = QtWidgets.QWidget(parent=self.group_history_chart)
         self.chart_view_history.setObjectName("chart_view_history")
@@ -346,7 +360,7 @@ class Ui_MainWindow(object):
         self.vbox_history.addWidget(self.group_history_chart)
 
         self.group_history_details = QtWidgets.QGroupBox(parent=self.tab_history)
-        self.group_history_details.setTitle("Chi tiết Lịch sử")
+        self.group_history_details.setTitle("History Details")
         self.vbox_history_details = QtWidgets.QVBoxLayout(self.group_history_details)
 
         self.table_history = QtWidgets.QTableWidget(parent=self.group_history_details)
@@ -359,21 +373,21 @@ class Ui_MainWindow(object):
         self.vbox_history_details.addWidget(self.table_history)
 
         self.group_history_actions = QtWidgets.QGroupBox(parent=self.group_history_details)
-        self.group_history_actions.setTitle("Tác vụ")
+        self.group_history_actions.setTitle("Actions")
         self.hbox_history_actions = QtWidgets.QHBoxLayout(self.group_history_actions)
 
         self.btn_delete_history = QtWidgets.QPushButton(parent=self.group_history_actions)
-        self.btn_delete_history.setText("Xóa mục đã chọn")
+        self.btn_delete_history.setText("Delete Selected")
         self.btn_delete_history.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.hbox_history_actions.addWidget(self.btn_delete_history)
 
         self.btn_clear_history = QtWidgets.QPushButton(parent=self.group_history_actions)
-        self.btn_clear_history.setText("Xóa tất cả")
+        self.btn_clear_history.setText("Clear All")
         self.btn_clear_history.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.hbox_history_actions.addWidget(self.btn_clear_history)
 
         self.btn_export_history = QtWidgets.QPushButton(parent=self.group_history_actions)
-        self.btn_export_history.setText("Xuất Lịch sử (CSV)")
+        self.btn_export_history.setText("Export History (CSV)")
         self.btn_export_history.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.hbox_history_actions.addWidget(self.btn_export_history)
 
@@ -386,7 +400,7 @@ class Ui_MainWindow(object):
         self.vbox_history.setStretch(0, 2)
         self.vbox_history.setStretch(1, 1)
 
-        self.tabWidget.addTab(self.tab_history, "Lịch sử Dự đoán")
+        self.tabWidget.addTab(self.tab_history, "Prediction History")
 
         self.verticalLayout_central.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -404,9 +418,9 @@ class Ui_MainWindow(object):
         # Header texts for tables
         # Tab 2 table headers
         item = self.table_train_results.horizontalHeaderItem(0)
-        item.setText(QtCore.QCoreApplication.translate("MainWindow", "Giá trị thực"))
+        item.setText(QtCore.QCoreApplication.translate("MainWindow", "Actual Value"))
         item = self.table_train_results.horizontalHeaderItem(1)
-        item.setText(QtCore.QCoreApplication.translate("MainWindow", "Giá trị dự đoán"))
+        item.setText(QtCore.QCoreApplication.translate("MainWindow", "Predicted Value"))
 
         # Tab 3 table headers
         item = self.table_model_comparison.horizontalHeaderItem(0)
