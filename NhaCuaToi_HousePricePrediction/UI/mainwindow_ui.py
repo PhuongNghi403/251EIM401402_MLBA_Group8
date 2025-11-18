@@ -285,6 +285,11 @@ class Ui_MainWindow(object):
         self.vbox_current_model.addWidget(self.lbl_current_model_rmse)
         self.vbox_predict_actions.addWidget(self.group_current_model)
 
+        self.btn_quick_evaluate = QtWidgets.QPushButton(parent=self.group_predict_actions)
+        self.btn_quick_evaluate.setText("Đánh giá nhanh")
+        self.btn_quick_evaluate.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
+        self.vbox_predict_actions.addWidget(self.btn_quick_evaluate)
+
         self.btn_predict = QtWidgets.QPushButton(parent=self.group_predict_actions)
         self.btn_predict.setText("Dự đoán Giá")
         self.btn_predict.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
@@ -308,11 +313,18 @@ class Ui_MainWindow(object):
         self.btn_export_report.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.vbox_predict_actions.addWidget(self.btn_export_report)
 
+        self.btn_open_house_input_form = QtWidgets.QPushButton(parent=self.group_predict_actions)
+        self.btn_open_house_input_form.setText("Open House Input Form")
+        self.btn_open_house_input_form.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
+        self.vbox_predict_actions.addWidget(self.btn_open_house_input_form)
+
         self.vbox_predict_actions.setStretch(0, 0)
         self.vbox_predict_actions.setStretch(1, 0)
         self.vbox_predict_actions.setStretch(2, 0)
-        self.vbox_predict_actions.setStretch(3, 1)
-        self.vbox_predict_actions.setStretch(4, 0)
+        self.vbox_predict_actions.setStretch(3, 0)
+        self.vbox_predict_actions.setStretch(4, 1)
+        self.vbox_predict_actions.setStretch(5, 0)
+        self.vbox_predict_actions.setStretch(5, 0)
 
         self.hbox_predict.addWidget(self.group_predict_actions)
         self.hbox_predict.setStretch(0, 1)

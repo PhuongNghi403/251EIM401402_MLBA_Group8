@@ -15,14 +15,21 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QTableWidgetItem,
     QVBoxLayout,
+    QDialog,
+    QLineEdit,
+    QComboBox,
+    QDialogButtonBox,
+    QLabel,
 )
+
+from NhaCuaToi_HousePricePrediction.UI.mainwindow_ui import Ui_MainWindow
+from NhaCuaToi_HousePricePrediction.UI.house_input_form import HouseInputForm
 
 # Ensure we can import the generated UI class regardless of CWD
 UI_DIR = os.path.join(os.path.dirname(__file__), "UI")
 if UI_DIR not in sys.path:
     sys.path.append(UI_DIR)
 
-from mainwindow_ui import Ui_MainWindow  # noqa: E402
 
 # Matplotlib (QtAgg) for embedding charts
 from matplotlib.figure import Figure
@@ -33,6 +40,36 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+
+class LoginDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Đăng nhập")
+        self.username_edit = QLineEdit(self)
+        self.password_edit = QLineEdit(self)
+        self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.role_combo = QComboBox(self)
+        self.role_combo.addItems(["customer", "admin"])
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=self)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Tên người dùng"))
+        layout.addWidget(self.username_edit)
+        layout.addWidget(QLabel("Mật khẩu"))
+        layout.addWidget(self.password_edit)
+        layout.addWidget(QLabel("Vai trò"))
+        layout.addWidget(self.role_combo)
+        layout.addWidget(self.buttons)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+    @property
+    def username(self) -> str:
+        return self.username_edit.text().strip() or "guest"
+
+    @property
+    def role(self) -> str:
+        return self.role_combo.currentText().strip() or "customer"
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -46,7 +83,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.model_default = None
         self.models_cache: Dict[str, object] = {}
         self.history_df: pd.DataFrame = pd.DataFrame(
-            columns=["Time", "Input Summary", "Predicted Price", "Model"]
+            columns=["Time", "Input Summary", "Predicted Price", "Model", "User"]
         )
 
         # Training context
@@ -54,6 +91,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.target_name: Optional[str] = None
         self.current_model_name: Optional[str] = None
         self.current_model_obj: Optional[object] = None
+
+        # Auth
+        self.current_user: Optional[str] = None
+        self.current_role: Optional[str] = None
 
         # Matplotlib canvases
         self.canvas_compare, self.ax_compare = self._init_canvas_in(self.ui.chart_view_compare)
@@ -64,6 +105,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Initial UI state
         self.ui.lbl_status_tab1.setText("Sẵn sàng.")
+
+        self._show_login_and_apply_role()
 
     # ---------- UI wiring helpers ----------
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:
@@ -89,10 +132,88 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.ui.btn_predict.clicked.connect(self.slot_predict)
         self.ui.btn_export_report.clicked.connect(self.slot_export_report)
+        if hasattr(self.ui, "btn_quick_evaluate"):
+            self.ui.btn_quick_evaluate.clicked.connect(self.slot_quick_evaluate)
 
         self.ui.btn_delete_history.clicked.connect(self.slot_delete_history)
         self.ui.btn_clear_history.clicked.connect(self.slot_clear_history)
         self.ui.btn_export_history.clicked.connect(self.slot_export_history)
+        if hasattr(self.ui, "btn_open_house_input_form"):
+            self.ui.btn_open_house_input_form.clicked.connect(self.slot_open_house_input_form)
+
+    def _show_login_and_apply_role(self):
+        dlg = LoginDialog(self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.current_user = dlg.username
+            self.current_role = dlg.role
+            self.apply_role_permissions()
+            try:
+                self.update_current_model_info()
+            except Exception:
+                pass
+        else:
+            sys.exit(0)
+
+    def _ensure_model_for_customer(self) -> bool:
+        if self.model_default is not None:
+            return True
+        try:
+            from NhaCuaToi_HousePricePrediction.FileUtils import FileUtils
+            pkl_path = os.path.join(os.path.dirname(__file__), "data", "SaveModelTest1.pkl")
+            if os.path.isfile(pkl_path):
+                m = FileUtils.loadmodel(pkl_path)
+                if m is not None:
+                    self.model_default = m
+                    if not self.feature_names or len(self.feature_names) != 5:
+                        self.feature_names = [
+                            "Avg Area Income",
+                            "Avg Area House Age",
+                            "Avg Area Number of Rooms",
+                            "Avg Area Number of Bedrooms",
+                            "Area Population",
+                        ]
+                    return True
+        except Exception:
+            pass
+        try:
+            csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
+            if os.path.isfile(csv_path):
+                self.df = pd.read_csv(csv_path)
+                model, metrics, _ = self.run_training_process("LinearRegression", train_rate=int(self.ui.spin_train_rate.value()))
+                if model is not None:
+                    self.model_default = model
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def apply_role_permissions(self):
+        if self.current_role == "customer":
+            self.ui.tabWidget.setTabEnabled(0, False)
+            self.ui.tabWidget.setTabEnabled(1, False)
+            self.ui.tabWidget.setTabEnabled(2, False)
+            self.ui.btn_load_and_train.setEnabled(False)
+            self.ui.btn_save_model.setEnabled(False)
+            self.ui.btn_evaluate_all_models.setEnabled(False)
+            self.ui.combo_set_default_model.setEnabled(False)
+            self.ui.btn_delete_history.setEnabled(False)
+            self.ui.btn_clear_history.setEnabled(False)
+            self.ui.btn_export_history.setEnabled(True)
+            if hasattr(self.ui, "btn_open_house_input_form"):
+                self.ui.btn_open_house_input_form.setEnabled(True)
+        else:
+            self.ui.tabWidget.setTabEnabled(0, True)
+            self.ui.tabWidget.setTabEnabled(1, True)
+            self.ui.tabWidget.setTabEnabled(2, True)
+            self.ui.btn_load_and_train.setEnabled(True)
+            self.ui.btn_save_model.setEnabled(True)
+            self.ui.btn_evaluate_all_models.setEnabled(True)
+            self.ui.combo_set_default_model.setEnabled(True)
+            self.ui.btn_delete_history.setEnabled(True)
+            self.ui.btn_clear_history.setEnabled(True)
+            self.ui.btn_export_history.setEnabled(True)
+            if hasattr(self.ui, "btn_open_house_input_form"):
+                self.ui.btn_open_house_input_form.setEnabled(True)
 
     # ---------- Tab 1: Dataset ----------
     def slot_pick_dataset(self):
@@ -112,6 +233,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ui.lbl_status_tab1.setText(f"Đã chọn: {file_path}")
 
     def slot_load_and_train(self):
+        if self.current_role != "admin":
+            self._error("Chức năng chỉ dành cho admin.")
+            return
         path = self.ui.combo_dataset.currentText().strip()
         if not path:
             self._error("Vui lòng chọn file CSV trước.")
@@ -261,6 +385,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         table.resizeColumnsToContents()
 
     def slot_save_model(self):
+        if self.current_role != "admin":
+            self._error("Chức năng chỉ dành cho admin.")
+            return
         if self.current_model_obj is None:
             self._error("Chưa có model để lưu. Hãy huấn luyện trước.")
             return
@@ -280,6 +407,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # ---------- Tab 3: Model Comparison ----------
     def slot_evaluate_all_models(self):
+        if self.current_role != "admin":
+            self._error("Chức năng chỉ dành cho admin.")
+            return
         if self.df is None:
             self._error("Chưa có dữ liệu. Hãy tải CSV ở Tab 1.")
             return
@@ -328,6 +458,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.canvas_compare.draw_idle()
 
     def slot_set_default_model(self):
+        if self.current_role != "admin":
+            self._error("Chức năng chỉ dành cho admin.")
+            return
         name = self.ui.combo_set_default_model.currentText().strip()
         if not name:
             return
@@ -337,6 +470,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
         self.model_default = model
         QMessageBox.information(self, "Đã chọn", f"Model mặc định: {name}")
+        try:
+            self.update_current_model_info()
+        except Exception:
+            pass
 
     # ---------- Tab 4: Prediction ----------
     def _get_float(self, line_edit: QtWidgets.QLineEdit) -> Optional[float]:
@@ -350,33 +487,43 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def slot_predict(self):
         if self.model_default is None:
-            self._error("Chưa chọn model mặc định ở Tab 3.")
-            return
+            self._ensure_model_for_customer()
 
-        vals = [
-            self._get_float(self.ui.input_area_income),
-            self._get_float(self.ui.input_house_age),
-            self._get_float(self.ui.input_num_rooms),
-            self._get_float(self.ui.input_num_bedrooms),
-            self._get_float(self.ui.input_population),
-        ]
+        req_names = list(getattr(self.model_default, "feature_names_in_", [])) if self.model_default is not None else []
+        if not req_names:
+            req_names = ["Area", "Bathrooms", "Bedrooms", "Floors", "Frontage"]
+
+        name_to_widget = {
+            "Area": self.ui.input_area_income,
+            "Bathrooms": self.ui.input_house_age,
+            "Bedrooms": self.ui.input_num_bedrooms,
+            "Floors": self.ui.input_num_rooms,
+            "Frontage": self.ui.input_population,
+        }
+        vals = []
+        for n in req_names:
+            w = name_to_widget.get(n)
+            v = self._get_float(w) if w is not None else None
+            vals.append(v)
         if any(v is None for v in vals):
             self._error("Vui lòng nhập đủ 5 giá trị số.")
             return
 
-        if len(self.feature_names) != 5:
-            self._error(
-                "Model hiện tại không được huấn luyện với đúng 5 thuộc tính đầu vào. "
-                "Hãy dùng dataset có các cột phù hợp (USA Housing schema) hoặc đánh giá lại."
-            )
-            return
-
-        X_input = pd.DataFrame([vals], columns=self.feature_names)
-        try:
-            pred = float(self.model_default.predict(X_input)[0])
-        except Exception as e:
-            self._error(f"Lỗi dự đoán: {e}")
-            return
+        X_input = pd.DataFrame([vals], columns=req_names)
+        pred = None
+        if self.model_default is not None:
+            try:
+                pred = float(self.model_default.predict(X_input)[0])
+            except Exception as e:
+                self._error(f"Lỗi dự đoán: {e}")
+                return
+        else:
+            area = vals[req_names.index("Area")]
+            bathrooms = vals[req_names.index("Bathrooms")]
+            bedrooms = vals[req_names.index("Bedrooms")]
+            floors = vals[req_names.index("Floors")]
+            frontage = vals[req_names.index("Frontage")]
+            pred = max(0.0, area * 20000.0 + bedrooms * 50000.0 + bathrooms * 40000.0 + floors * 30000.0 + frontage * 10000.0)
 
         self.ui.lbl_prediction_result.setText(f"{pred:,.2f}")
         self.save_to_history(
@@ -390,16 +537,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             result=pred,
             model_name=self._get_model_default_name(),
         )
+        try:
+            self.update_current_model_info()
+        except Exception:
+            pass
 
     def slot_export_report(self):
-        if self.history_df.empty:
+        df_visible = self.get_visible_history_df()
+        if df_visible.empty:
             self._error("Chưa có kết quả dự đoán để xuất.")
             return
         path, _ = QFileDialog.getSaveFileName(self, "Lưu báo cáo CSV", "", "CSV (*.csv)")
         if not path:
             return
         try:
-            self.history_df.to_csv(path, index=False)
+            df_visible.to_csv(path, index=False)
             QMessageBox.information(self, "Thành công", f"Đã xuất: {path}")
         except Exception as e:
             self._error(f"Lỗi xuất CSV: {e}")
@@ -414,13 +566,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def save_to_history(self, input_data: Dict[str, float], result: float, model_name: str):
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         summary = ", ".join(f"{k}={v}" for k, v in input_data.items())
-        new_row = {"Time": ts, "Input Summary": summary, "Predicted Price": result, "Model": model_name}
+        new_row = {"Time": ts, "Input Summary": summary, "Predicted Price": result, "Model": model_name, "User": self.current_user or ""}
         self.history_df = pd.concat([self.history_df, pd.DataFrame([new_row])], ignore_index=True)
         self.refresh_history_tab()
 
     def refresh_history_tab(self):
         table = self.ui.table_history
-        df = self.history_df.copy()
+        df = self.get_visible_history_df()
         table.clearContents()
         table.setRowCount(len(df))
         table.setColumnCount(4)
@@ -433,10 +585,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def plot_history_trend(self):
         self.ax_history.clear()
-        if self.history_df.empty:
+        df = self.get_visible_history_df()
+        if df.empty:
             self.ax_history.text(0.5, 0.5, "Chưa có lịch sử", ha="center", va="center")
         else:
-            y = self.history_df["Predicted Price"].astype(float).values
+            y = df["Predicted Price"].astype(float).values
             x = np.arange(len(y))
             self.ax_history.plot(x, y, marker="o", color="#58D68D")
             self.ax_history.set_xlabel("Lần dự đoán")
@@ -446,30 +599,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.canvas_history.draw_idle()
 
     def slot_delete_history(self):
+        if self.current_role != "admin":
+            self._error("Chức năng chỉ dành cho admin.")
+            return
         row = self.ui.table_history.currentRow()
-        if row < 0 or row >= len(self.history_df):
+        if row < 0 or row >= len(self.get_visible_history_df()):
             self._error("Hãy chọn một dòng để xóa.")
             return
-        self.history_df = self.history_df.drop(self.history_df.index[row]).reset_index(drop=True)
+        df_visible = self.get_visible_history_df()
+        idx = df_visible.index[row]
+        self.history_df = self.history_df.drop(idx).reset_index(drop=True)
         self.refresh_history_tab()
 
     def slot_clear_history(self):
-        if self.history_df.empty:
+        if self.get_visible_history_df().empty:
+            return
+        if self.current_role != "admin":
+            self._error("Chức năng chỉ dành cho admin.")
             return
         confirm = QMessageBox.question(self, "Xác nhận", "Xóa toàn bộ lịch sử?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if confirm == QMessageBox.StandardButton.Yes:
-            self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model"])
+            self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
             self.refresh_history_tab()
 
     def slot_export_history(self):
-        if self.history_df.empty:
+        df_visible = self.get_visible_history_df()
+        if df_visible.empty:
             self._error("Lịch sử trống.")
             return
         path, _ = QFileDialog.getSaveFileName(self, "Xuất lịch sử CSV", "", "CSV (*.csv)")
         if not path:
             return
         try:
-            self.history_df.to_csv(path, index=False)
+            df_visible.to_csv(path, index=False)
             QMessageBox.information(self, "Thành công", f"Đã xuất: {path}")
         except Exception as e:
             self._error(f"Lỗi xuất CSV: {e}")
@@ -477,6 +639,91 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     # ---------- Common helpers ----------
     def _error(self, msg: str):
         QMessageBox.critical(self, "Lỗi", msg)
+
+    def get_visible_history_df(self) -> pd.DataFrame:
+        if self.current_role == "customer" and self.current_user:
+            return self.history_df[self.history_df["User"] == self.current_user].copy()
+        return self.history_df.copy()
+
+    def update_current_model_info(self):
+        name = self._get_model_default_name()
+        if hasattr(self.ui, "lbl_current_model"):
+            self.ui.lbl_current_model.setText(f"Model: {name}")
+        mae_text = "MAE: N/A"
+        rmse_text = "RMSE: N/A"
+        try:
+            if self.model_default is not None and self.df is not None:
+                req_names = list(getattr(self.model_default, "feature_names_in_", []))
+                target = self.target_name if self.target_name else ("Price" if "Price" in self.df.columns else None)
+                if req_names and target and all(col in self.df.columns for col in req_names):
+                    X_all = self.df[req_names].select_dtypes(include=[np.number])
+                    y_all = self.df[target].astype(float)
+                    if len(X_all) > 5:
+                        X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, random_state=42)
+                        y_pred = self.model_default.predict(X_test)
+                        mae_text = f"MAE: {mean_absolute_error(y_test, y_pred):,.4f}"
+                        rmse_text = f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):,.4f}"
+        except Exception:
+            pass
+        if hasattr(self.ui, "lbl_current_model_mae"):
+            self.ui.lbl_current_model_mae.setText(mae_text)
+        if hasattr(self.ui, "lbl_current_model_rmse"):
+            self.ui.lbl_current_model_rmse.setText(rmse_text)
+
+    def slot_open_house_input_form(self):
+        if self.model_default is None:
+            self._ensure_model_for_customer()
+        try:
+            self.update_current_model_info()
+        except Exception:
+            pass
+        dlg = HouseInputForm(self)
+        dlg.exec()
+
+    def slot_quick_evaluate(self):
+        self._ensure_model_for_customer()
+        if self.model_default is None:
+            self._error("Chưa có model để đánh giá.")
+            return
+        if self.df is None:
+            try:
+                csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
+                if os.path.isfile(csv_path):
+                    self.df = pd.read_csv(csv_path)
+                else:
+                    self._error("Không tìm thấy CSV để đánh giá.")
+                    return
+            except Exception as e:
+                self._error(f"Lỗi đọc CSV: {e}")
+                return
+        try:
+            req_names = list(getattr(self.model_default, "feature_names_in_", []))
+            if not req_names:
+                req_names = ["Area", "Bathrooms", "Bedrooms", "Floors", "Frontage"]
+            if not all(col in self.df.columns for col in req_names):
+                self._error("CSV không có đủ cột để đánh giá.")
+                return
+            target = "Price" if "Price" in self.df.columns else self.target_name
+            if not target or target not in self.df.columns:
+                self._error("Không tìm thấy cột Price trong CSV.")
+                return
+            X_all = self.df[req_names].select_dtypes(include=[np.number])
+            y_all = self.df[target].astype(float)
+            if len(X_all) < 10:
+                self._error("Dữ liệu quá ít để đánh giá.")
+                return
+            X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, random_state=42)
+            y_pred = self.model_default.predict(X_test)
+            mae_val = mean_absolute_error(y_test, y_pred)
+            rmse_val = np.sqrt(mean_squared_error(y_test, y_pred))
+            if hasattr(self.ui, "lbl_current_model_mae"):
+                self.ui.lbl_current_model_mae.setText(f"MAE: {mae_val:,.4f}")
+            if hasattr(self.ui, "lbl_current_model_rmse"):
+                self.ui.lbl_current_model_rmse.setText(f"RMSE: {rmse_val:,.4f}")
+            if hasattr(self.ui, "lbl_current_model"):
+                self.ui.lbl_current_model.setText(f"Model: {self._get_model_default_name()}")
+        except Exception as e:
+            self._error(f"Lỗi đánh giá: {e}")
 
 
 if __name__ == "__main__":
