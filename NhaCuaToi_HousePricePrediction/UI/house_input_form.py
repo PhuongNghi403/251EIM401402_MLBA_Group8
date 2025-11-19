@@ -188,6 +188,21 @@ class HouseInputForm(QDialog):
         self.lbl_result.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lbl_result)
 
+        # THÊM: dòng nhỏ hiển thị Price Range ngay dưới Predicted Price
+        self.lbl_price_range = QLabel("", self)
+        font_small = QtGui.QFont()
+        font_small.setPointSize(12)
+        font_small.setItalic(True)
+        self.lbl_price_range.setFont(font_small)
+        self.lbl_price_range.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # Màu nhã cho light/dark
+        try:
+            color = "#cbbef5" if getattr(self._parent, "_theme_mode", "light") == "dark" else "#7b6f9e"
+        except Exception:
+            color = "#7b6f9e"
+        self.lbl_price_range.setStyleSheet(f"color: {color};")
+        layout.addWidget(self.lbl_price_range)
+
         self.btn_predict.clicked.connect(self._on_predict_clicked)
 
     def _read_and_validate(self):
@@ -335,6 +350,27 @@ class HouseInputForm(QDialog):
             pred = max(0.0, income * 100.0 + rooms * 50000.0 + bedrooms * 30000.0 + population * 0.1 - age * 10000.0)
 
         self.lbl_result.setText(f"Predicted Price (USD): {pred:,.2f}")
+
+        # Cập nhật Price Range ngay dưới Predicted Price
+        try:
+            age_label = clean.get("AgeLabel", "5–10 years")
+            prop_type = clean.get("PropertyType", "Apartment")
+            base_var = {
+                "New": 0.06,
+                "< 5 years": 0.08,
+                "5–10 years": 0.10,
+                "> 10 years": 0.12,
+            }.get(age_label, 0.10)
+            type_delta = {"Apartment": -0.01, "Townhouse": 0.00, "Villa": 0.02}.get(prop_type, 0.00)
+            var = max(0.03, base_var + type_delta)
+
+            low = max(0.0, pred * (1.0 - var))
+            high = pred * (1.0 + var)
+            color = "#cbbef5" if getattr(self._parent, "_theme_mode", "light") == "dark" else "#7b6f9e"
+            self.lbl_price_range.setStyleSheet(f"color: {color};")
+            self.lbl_price_range.setText(f"Price Range (USD): {low:,.2f} – {high:,.2f}")
+        except Exception:
+            self.lbl_price_range.setText("")
         try:
             if hasattr(self._parent, "_update_price_trend"):
                 self._parent._update_price_trend(pred)
