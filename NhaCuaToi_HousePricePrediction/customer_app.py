@@ -20,6 +20,14 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         super().__init__()
         self.ui = Ui_CustomerHome()
         self.ui.setupUi(self)
+        try:
+            self.ui.tabWidget.setCurrentIndex(0)
+        except Exception:
+            pass
+        try:
+            QtCore.QTimer.singleShot(0, lambda: self.ui.tabWidget.setCurrentIndex(0))
+        except Exception:
+            pass
         # Khởi tạo dữ liệu lịch sử trước khi mixin dùng
         self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         PredictionLogicMixin.__init__(self)
@@ -96,6 +104,10 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         self._apply_theme(getattr(self, "_theme_mode", "dark"))
         self.ui.table_history.setColumnCount(4)
         self.ui.table_history.setHorizontalHeaderLabels(["Time", "Input Summary", "Predicted Price", "Model"])
+        if hasattr(self.ui, "btn_export_csv"):
+            self.ui.btn_export_csv.clicked.connect(self._export_csv)
+        if hasattr(self.ui, "btn_export_pdf"):
+            self.ui.btn_export_pdf.clicked.connect(self._export_pdf)
 
         # Tăng tính linh hoạt cho giao diện nhỏ
         self._enhance_responsiveness()
@@ -109,6 +121,10 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             self._init_recommendation_ui()
         except Exception:
             pass
+        if hasattr(self.ui, "btn_rec_export_csv"):
+            self.ui.btn_rec_export_csv.clicked.connect(self._export_recommend_csv)
+        if hasattr(self.ui, "btn_rec_export_pdf"):
+            self.ui.btn_rec_export_pdf.clicked.connect(self._export_recommend_pdf)
 
     def _error(self, msg: str):
         QMessageBox.critical(self, "Error", msg)
@@ -141,7 +157,7 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
                         subprocess.run([sys.executable, gen_path], cwd=os.path.dirname(__file__), timeout=15)
             except Exception:
                 pass
-            target_port = 7865
+            target_port = 7860
             env = os.environ.copy()
             env["CHATBOT_PORT"] = str(target_port)
             env.setdefault("CHATBOT_SHARE", "false")
@@ -306,6 +322,12 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             except Exception:
                 pass
             self.canvas_price_trend.draw_idle()
+            try:
+                self._last_predicted_price = float(current_price)
+                self._last_trend_years = list(years)
+                self._last_trend_prices = [float(x) for x in prices]
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -351,8 +373,369 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             except Exception:
                 pass
             self.canvas_price_breakdown.draw_idle()
+            try:
+                self._last_breakdown = dict(zip(labels, perc))
+            except Exception:
+                pass
         except Exception:
             pass
+
+    def _collect_current_inputs(self):
+        d = {}
+        f = getattr(self, "inline_house_form", None)
+        if f is None:
+            return d
+        try:
+            d["Floor area"] = f.input_floor_area.text().strip()
+            d["Bedrooms"] = int(f.spin_bedrooms.value())
+            d["Bathrooms"] = int(f.spin_bathrooms.value())
+            d["Property type"] = f.combo_property_type.currentText().strip()
+            d["Province"] = f.combo_location.currentText().strip()
+            d["Age/Condition"] = f.combo_age.currentText().strip()
+            try:
+                d["Predicted Price (text)"] = f.lbl_result.text().strip()
+            except Exception:
+                pass
+            try:
+                d["Price Range (USD)"] = f.lbl_price_range.text().strip()
+            except Exception:
+                pass
+            amens = []
+            if f.chk_school.isChecked():
+                amens.append("Near school")
+            if f.chk_hospital.isChecked():
+                amens.append("Near hospital")
+            if f.chk_mall.isChecked():
+                amens.append("Near shopping mall")
+            if f.chk_park.isChecked():
+                amens.append("Near park")
+            d["Selected amenities"] = ", ".join(amens) if amens else "None"
+        except Exception:
+            pass
+        return d
+
+    def _export_csv(self):
+        try:
+            if not hasattr(self, "_last_predicted_price"):
+                self._error("No prediction yet.")
+                return
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save CSV", "", "CSV (*.csv)")
+            if not path:
+                return
+            import json
+            import os
+            inp = self._collect_current_inputs()
+            bd = getattr(self, "_last_breakdown", {})
+            top3 = sorted([(k, float(v)) for k, v in bd.items()], key=lambda x: -x[1])[:3]
+            top3_str = "; ".join([f"{k}" for k, _ in top3]) if top3 else ""
+            trend_years = getattr(self, "_last_trend_years", [])
+            trend_prices = getattr(self, "_last_trend_prices", [])
+            # Lưu hình chart ra PNG cạnh file CSV
+            base, _ext = os.path.splitext(path)
+            trend_png = base + "_trend.png"
+            breakdown_png = base + "_breakdown.png"
+            try:
+                if hasattr(self, "canvas_price_trend") and self.canvas_price_trend is not None:
+                    self.canvas_price_trend.figure.savefig(trend_png, dpi=150, bbox_inches='tight')
+            except Exception:
+                trend_png = ""
+            try:
+                if hasattr(self, "canvas_price_breakdown") and self.canvas_price_breakdown is not None:
+                    self.canvas_price_breakdown.figure.savefig(breakdown_png, dpi=150, bbox_inches='tight')
+            except Exception:
+                breakdown_png = ""
+            row = {
+                **inp,
+                "Predicted Price": float(getattr(self, "_last_predicted_price", 0.0)),
+                "Top 3 strongest factors": top3_str,
+                # Flatten chart values để đọc dễ trong Excel
+                "Trend years": "; ".join(str(y) for y in trend_years),
+                "Trend prices": "; ".join(f"{p:.4f}" for p in trend_prices),
+                **{f"Breakdown - {k}": float(v) for k, v in bd.items()},
+                "Trend chart file": trend_png,
+                "Breakdown chart file": breakdown_png,
+                # Excel (Microsoft 365) có hàm IMAGE, hiển thị ảnh trong ô
+                "Trend chart": f"=IMAGE(\"file:///{trend_png.replace('\\\\', '/').replace('\\', '/')}\")" if trend_png else "",
+                "Breakdown chart": f"=IMAGE(\"file:///{breakdown_png.replace('\\\\', '/').replace('\\', '/')}\")" if breakdown_png else "",
+            }
+            import pandas as pd
+            df = pd.DataFrame([row])
+            # Ghi UTF-8 with BOM để Excel hiển thị tiếng Việt đúng
+            df.to_csv(path, index=False, encoding='utf-8-sig')
+            try:
+                self._write_xlsx_with_images(path, row, trend_png, breakdown_png)
+            except Exception:
+                pass
+            QtWidgets.QMessageBox.information(self, "Success", f"Exported: {path}")
+        except Exception as e:
+            self._error(f"CSV export error: {e}")
+
+    def _write_xlsx_with_images(self, csv_path: str, row: dict, trend_png: str, breakdown_png: str):
+        from openpyxl import Workbook
+        from openpyxl.drawing.image import Image as XLImage
+        import os
+        base, _ = os.path.splitext(csv_path)
+        xlsx_path = base + ".xlsx"
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Prediction"
+        # Header and values in first rows
+        headers = list(row.keys())
+        values = [row[h] for h in headers]
+        for c, h in enumerate(headers, start=1):
+            ws.cell(row=1, column=c, value=str(h))
+        for c, v in enumerate(values, start=1):
+            try:
+                ws.cell(row=2, column=c, value=v)
+            except Exception:
+                ws.cell(row=2, column=c, value=str(v))
+        r_img = 4
+        if trend_png and os.path.isfile(trend_png):
+            try:
+                img1 = XLImage(trend_png)
+                ws.add_image(img1, f"A{r_img}")
+                r_img += int(max(20, img1.height // 20))
+            except Exception:
+                pass
+        if breakdown_png and os.path.isfile(breakdown_png):
+            try:
+                img2 = XLImage(breakdown_png)
+                ws.add_image(img2, f"H4")
+            except Exception:
+                pass
+        wb.save(xlsx_path)
+
+    def _collect_recommend_inputs(self):
+        ui = self.ui
+        d = {}
+        try:
+            d["Budget (USD)"] = ui.input_rec_budget.text().strip()
+            d["Floor area (m²)"] = ui.input_rec_area.text().strip()
+            d["Region"] = ui.combo_rec_region.currentText().strip()
+            d["Property type"] = ui.combo_rec_type.currentText().strip()
+        except Exception:
+            pass
+        return d
+
+    def _collect_recommend_rows(self):
+        rows = []
+        tbl = self.ui.table_recommendation
+        try:
+            cols = [tbl.horizontalHeaderItem(i).text() for i in range(tbl.columnCount())]
+        except Exception:
+            cols = ["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"]
+        for r in range(tbl.rowCount()):
+            row = {}
+            for c in range(tbl.columnCount()):
+                try:
+                    it = tbl.item(r, c)
+                    row[cols[c]] = it.text() if it else ""
+                except Exception:
+                    row[cols[c]] = ""
+            rows.append(row)
+        return rows
+
+    def _export_recommend_csv(self):
+        try:
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save CSV", "", "CSV (*.csv)")
+            if not path:
+                return
+            import csv
+            base_info = self._collect_recommend_inputs()
+            rows = self._collect_recommend_rows()
+            if rows:
+                rec_headers = list(rows[0].keys())
+            else:
+                rec_headers = ["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"]
+            base_keys = ["Budget (USD)", "Floor area (m²)", "Region", "Property type"]
+            with open(path, "w", newline="", encoding="utf-8-sig") as f:
+                w = csv.writer(f)
+                w.writerow(["User Input"])
+                w.writerow(base_keys)
+                w.writerow([base_info.get(k, "") for k in base_keys])
+                w.writerow([])
+                w.writerow(["Recommendations"])
+                w.writerow(rec_headers)
+                for r in rows:
+                    w.writerow([r.get(h, "") for h in rec_headers])
+            try:
+                self._write_recommend_xlsx(path, base_info, rows, rec_headers)
+            except Exception:
+                pass
+            QtWidgets.QMessageBox.information(self, "Success", f"Exported: {path}")
+        except Exception as e:
+            self._error(f"CSV export error: {e}")
+
+    def _write_recommend_xlsx(self, csv_path: str, base_info: dict, rows: list, headers: list):
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        import os
+        base, _ = os.path.splitext(csv_path)
+        xlsx_path = base + ".xlsx"
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Recommendation"
+        base_keys = ["Budget (USD)", "Floor area (m²)", "Region", "Property type"]
+        ws.cell(row=1, column=1, value="User Input")
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(base_keys))
+        title_fill = PatternFill("solid", fgColor="6D1E3B")
+        title_font = Font(bold=True, color="FFFFFF", size=14)
+        title_align = Alignment(horizontal="center", vertical="center")
+        c = ws.cell(row=1, column=1)
+        c.fill = title_fill
+        c.font = title_font
+        c.alignment = title_align
+        for col, key in enumerate(base_keys, start=1):
+            ws.cell(row=2, column=col, value=key)
+        for col, key in enumerate(base_keys, start=1):
+            ws.cell(row=3, column=col, value=base_info.get(key, ""))
+        header_fill = PatternFill("solid", fgColor="D6B6F5")
+        header_font = Font(bold=True)
+        header_align = Alignment(horizontal="center")
+        thin = Side(style="thin", color="D6B6F5")
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+        for col in range(1, len(base_keys) + 1):
+            cell = ws.cell(row=2, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_align
+            cell.border = border
+        ws.cell(row=5, column=1, value="Recommendations")
+        ws.merge_cells(start_row=5, start_column=1, end_row=5, end_column=len(headers))
+        t2 = ws.cell(row=5, column=1)
+        t2.fill = title_fill
+        t2.font = title_font
+        t2.alignment = title_align
+        for col, key in enumerate(headers, start=1):
+            cell = ws.cell(row=6, column=col, value=key)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_align
+            cell.border = border
+        start_row = 7
+        for r_idx, r in enumerate(rows, start=start_row):
+            for c_idx, key in enumerate(headers, start=1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=r.get(key, ""))
+                cell.border = border
+                if (r_idx - start_row) % 2 == 0:
+                    cell.fill = PatternFill("solid", fgColor="F8E1F4")
+        max_cols = max(len(base_keys), len(headers))
+        for i in range(1, max_cols + 1):
+            ws.column_dimensions[chr(64 + i)].width = 18
+        wb.save(xlsx_path)
+
+    def _export_recommend_pdf(self):
+        try:
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save PDF", "", "PDF (*.pdf)")
+            if not path:
+                return
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_pdf import PdfPages
+            import datetime
+            base_info = self._collect_recommend_inputs()
+            rows = self._collect_recommend_rows()
+            with PdfPages(path) as pdf:
+                fig1 = Figure(figsize=(8.27, 11.69))
+                ax1 = fig1.add_subplot(111)
+                ax1.axis('off')
+                y = 0.92
+                ax1.text(0.5, y, "Property Recommendations Report", ha='center', va='top', fontsize=20, fontweight='bold', color="#4c0c24")
+                y -= 0.05
+                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ax1.text(0.5, y, f"Generated: {ts}", ha='center', va='top', fontsize=11, color="#7b6f9e")
+                y -= 0.08
+                ax1.text(0.05, y, "User Input:", fontsize=13, fontweight='bold', color="#2b2342")
+                for k in ["Budget (USD)", "Floor area (m²)", "Region", "Property type"]:
+                    y -= 0.04
+                    ax1.text(0.07, y, f"{k}: {base_info.get(k,'')}", fontsize=11, color="#2b2342")
+                ax1.text(0.5, 0.84, "Recommendations", ha='center', va='top', fontsize=13, fontweight='bold', color="#4c0c24")
+                if rows:
+                    headers = list(rows[0].keys())
+                else:
+                    headers = ["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"]
+                data = [[r.get(h, "") for h in headers] for r in rows]
+                ax2 = fig1.add_axes([0.05, 0.12, 0.90, 0.68])
+                ax2.axis('off')
+                ncols = len(headers)
+                cw = [0.98 / ncols] * ncols
+                table = ax2.table(cellText=data, colLabels=headers, loc='center', cellLoc='center', colWidths=cw)
+                table.auto_set_font_size(False)
+                table.set_fontsize(9)
+                table.scale(1.0, 1.1)
+                for c in range(len(headers)):
+                    try:
+                        hcell = table[0, c]
+                        hcell.set_facecolor("#6d1e3b")
+                        hcell.set_edgecolor("#6d1e3b")
+                        hcell.get_text().set_color("#f8e1f4")
+                        hcell.get_text().set_weight('bold')
+                    except Exception:
+                        pass
+                for r in range(1, len(data) + 1):
+                    for c in range(len(headers)):
+                        try:
+                            cell = table[r, c]
+                            cell.set_edgecolor("#d6b6f5")
+                            cell.set_linewidth(0.8)
+                            if r % 2 == 0:
+                                cell.set_facecolor("#f8e1f4")
+                            else:
+                                cell.set_facecolor("#ffffff")
+                            cell.get_text().set_color("#2b2342")
+                        except Exception:
+                            pass
+                pdf.savefig(fig1)
+            QtWidgets.QMessageBox.information(self, "Success", f"Exported: {path}")
+        except Exception as e:
+            self._error(f"PDF export error: {e}")
+
+    def _export_pdf(self):
+        try:
+            if not hasattr(self, "_last_predicted_price"):
+                self._error("No prediction yet.")
+                return
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save PDF", "", "PDF (*.pdf)")
+            if not path:
+                return
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_pdf import PdfPages
+            import datetime
+            inp = self._collect_current_inputs()
+            title = "House Price Prediction Report"
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            price_val = float(getattr(self, "_last_predicted_price", 0.0))
+            with PdfPages(path) as pdf:
+                fig1 = Figure(figsize=(8.27, 11.69))
+                ax1 = fig1.add_subplot(111)
+                ax1.axis('off')
+                y = 0.95
+                ax1.text(0.5, y, title, ha='center', va='top', fontsize=18, fontweight='bold')
+                y -= 0.05
+                ax1.text(0.5, y, f"Generated: {ts}", ha='center', va='top', fontsize=10)
+                y -= 0.08
+                ax1.text(0.05, y, "Input Summary:", fontsize=12, fontweight='bold')
+                lines = [
+                    f"Floor area: {inp.get('Floor area','')}",
+                    f"Bedrooms: {inp.get('Bedrooms','')}",
+                    f"Bathrooms: {inp.get('Bathrooms','')}",
+                    f"Property type: {inp.get('Property type','')}",
+                    f"Province: {inp.get('Province','')}",
+                    f"Age/Condition: {inp.get('Age/Condition','')}",
+                    f"Selected amenities: {inp.get('Selected amenities','')}",
+                ]
+                for ln in lines:
+                    y -= 0.04
+                    ax1.text(0.07, y, ln, fontsize=10)
+                y -= 0.06
+                ax1.text(0.05, y, f"Predicted Price (USD): {price_val:,.2f}", fontsize=14, fontweight='bold')
+                pdf.savefig(fig1)
+                if hasattr(self, "canvas_price_trend") and self.canvas_price_trend is not None:
+                    pdf.savefig(self.canvas_price_trend.figure)
+                if hasattr(self, "canvas_price_breakdown") and self.canvas_price_breakdown is not None:
+                    pdf.savefig(self.canvas_price_breakdown.figure)
+            QtWidgets.QMessageBox.information(self, "Success", f"Exported: {path}")
+        except Exception as e:
+            self._error(f"PDF export error: {e}")
 
     def _render_city_map(self):
         if not hasattr(self, "ax_city_map"):

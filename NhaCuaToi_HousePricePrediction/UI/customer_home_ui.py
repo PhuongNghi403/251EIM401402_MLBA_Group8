@@ -63,6 +63,15 @@ class Ui_CustomerHome(object):
         self.hbox_price_charts.addWidget(self.chart_view_price_breakdown)
         self.vbox_price_chart.addLayout(self.hbox_price_charts)
         self.vbox_predict.addWidget(self.group_price_chart)
+        self.hbox_predict_exports = QtWidgets.QHBoxLayout()
+        self.hbox_predict_exports.setObjectName("hbox_predict_exports")
+        self.btn_export_csv = QtWidgets.QPushButton(parent=self.tab_predict)
+        self.btn_export_csv.setObjectName("btn_export_csv")
+        self.btn_export_pdf = QtWidgets.QPushButton(parent=self.tab_predict)
+        self.btn_export_pdf.setObjectName("btn_export_pdf")
+        self.hbox_predict_exports.addWidget(self.btn_export_csv)
+        self.hbox_predict_exports.addWidget(self.btn_export_pdf)
+        self.vbox_predict.addLayout(self.hbox_predict_exports)
         
         self.tabWidget.addTab(self.tab_predict, "Price Prediction")
         self.tab_history = QtWidgets.QWidget()
@@ -246,6 +255,15 @@ class Ui_CustomerHome(object):
             self.vbox_recommend.setStretch(4, 0)
         except Exception:
             pass
+        self.hbox_recommend_exports = QtWidgets.QHBoxLayout()
+        self.hbox_recommend_exports.setObjectName("hbox_recommend_exports")
+        self.btn_rec_export_csv = QtWidgets.QPushButton(parent=self.tab_recommend)
+        self.btn_rec_export_csv.setObjectName("btn_rec_export_csv")
+        self.btn_rec_export_pdf = QtWidgets.QPushButton(parent=self.tab_recommend)
+        self.btn_rec_export_pdf.setObjectName("btn_rec_export_pdf")
+        self.hbox_recommend_exports.addWidget(self.btn_rec_export_csv)
+        self.hbox_recommend_exports.addWidget(self.btn_rec_export_pdf)
+        self.vbox_recommend.addLayout(self.hbox_recommend_exports)
         self.tabWidget.addTab(self.tab_recommend, "Recommendation")
 
         # Tab Chatbot
@@ -313,6 +331,8 @@ class Ui_CustomerHome(object):
         self.group_chatbot.setTitle(_translate("CustomerHome", "House Price Advisory (Chatbot)"))
         self.btn_start_chatbot.setText(_translate("CustomerHome", "Start Chatbot"))
         self.lbl_chatbot_url.setText(_translate("CustomerHome", "URL: not started"))
+        self.btn_export_csv.setText(_translate("CustomerHome", "Export CSV & XLSX"))
+        self.btn_export_pdf.setText(_translate("CustomerHome", "Export PDF"))
 
         self.group_recommend_input.setTitle(_translate("CustomerHome", "User Input"))
         self.group_recommend_results.setTitle(_translate("CustomerHome", "Recommendations"))
@@ -330,6 +350,8 @@ class Ui_CustomerHome(object):
             "</ul>"
             "</div>"
         )))
+        self.btn_rec_export_csv.setText(_translate("CustomerHome", "Export CSV & XLSX"))
+        self.btn_rec_export_pdf.setText(_translate("CustomerHome", "Export PDF"))
         try:
             h = int(self.txt_recommend_doc.sizeHint().height()) + 12
             h = max(80, min(h, 200))
