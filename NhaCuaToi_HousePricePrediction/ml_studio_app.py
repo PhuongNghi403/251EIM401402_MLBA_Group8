@@ -190,6 +190,8 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         # Theme toggle button (only if exists)
         if hasattr(self.ui, "btn_toggle_theme"):
             self.ui.btn_toggle_theme.clicked.connect(self._toggle_theme)
+        if hasattr(self.ui, "btn_logout"):
+            self.ui.btn_logout.clicked.connect(self.slot_logout)
 
         if hasattr(self.ui, "btn_quick_evaluate"):
             self.ui.btn_quick_evaluate.clicked.connect(self.slot_quick_evaluate)
@@ -388,6 +390,12 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ui.btn_clear_history.setIcon(self._load_icon("clear.png", s.StandardPixmap.SP_BrowserStop))
         self.ui.btn_export_history.setIcon(self._load_icon("export_history.png", s.StandardPixmap.SP_DriveHDIcon))
 
+        # Topbar icons
+        if hasattr(self.ui, "btn_toggle_theme"):
+            self.ui.btn_toggle_theme.setIcon(self._load_icon("theme.png", s.StandardPixmap.SP_FileDialogDetailedView))
+        if hasattr(self.ui, "btn_logout"):
+            self.ui.btn_logout.setIcon(self._load_icon("logout.png", s.StandardPixmap.SP_DialogCloseButton))
+
         # Tabs icons
         self.ui.tabWidget.setTabIcon(0, self._load_icon("tab_dataset.png", s.StandardPixmap.SP_DirIcon))
         self.ui.tabWidget.setTabIcon(1, self._load_icon("tab_train.png", s.StandardPixmap.SP_ComputerIcon))
@@ -398,6 +406,21 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
     def _toggle_theme(self):
         self._theme_mode = "dark" if self._theme_mode == "light" else "light"
         self._apply_theme(self._theme_mode)
+
+    def slot_logout(self):
+        try:
+            from login_app import LoginWindow
+            self.close()
+            self._login = LoginWindow()
+            self._login.show()
+        except Exception:
+            self.current_user = None
+            self.current_role = None
+            try:
+                self.ui.combo_set_default_model.clear()
+            except Exception:
+                pass
+            self._show_login_and_apply_role()
 
     # ---------- Tab 1: Dataset ----------
     def slot_pick_dataset(self):

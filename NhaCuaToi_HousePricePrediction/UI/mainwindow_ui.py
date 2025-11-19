@@ -36,6 +36,11 @@ class Ui_MainWindow(object):
         self.btn_toggle_theme.setObjectName("btn_toggle_theme")
         self.btn_toggle_theme.setText("Toggle Theme")
         self.hbox_theme_toggle.addWidget(self.btn_toggle_theme)
+
+        self.btn_logout = QtWidgets.QPushButton(parent=self.widget_topbar)
+        self.btn_logout.setObjectName("btn_logout")
+        self.btn_logout.setText("Log Out")
+        self.hbox_theme_toggle.addWidget(self.btn_logout)
         self.verticalLayout_central.addWidget(self.widget_topbar)
 
         # QTabWidget như cũ
@@ -77,7 +82,7 @@ class Ui_MainWindow(object):
 
         self.label_train_rate = QtWidgets.QLabel(parent=self.group_dataset_config)
         self.label_train_rate.setObjectName("label_train_rate")
-        self.label_train_rate.setText("Tỉ lệ Train (%):")
+        self.label_train_rate.setText("Train Rate (%):")
         self.gridLayout_dataset_config.addWidget(self.label_train_rate, 1, 0, 1, 1)
 
         self.spin_train_rate = QtWidgets.QSpinBox(parent=self.group_dataset_config)
@@ -90,7 +95,7 @@ class Ui_MainWindow(object):
 
         self.btn_load_and_train = QtWidgets.QPushButton(parent=self.group_dataset_config)
         self.btn_load_and_train.setObjectName("btn_load_and_train")
-        self.btn_load_and_train.setText("Tải & Huấn luyện")
+        self.btn_load_and_train.setText("Load & Train")
         self.btn_load_and_train.setSizePolicy(sizeFixed)
         self.gridLayout_dataset_config.addWidget(self.btn_load_and_train, 1, 2, 1, 1)
 
@@ -202,14 +207,7 @@ class Ui_MainWindow(object):
             self.table_model_comparison.setHorizontalHeaderItem(i, QtWidgets.QTableWidgetItem())
         self.vbox_run_select.addWidget(self.table_model_comparison)
 
-        self.label_choose_best_model = QtWidgets.QLabel(parent=self.group_run_select_model)
-        self.label_choose_best_model.setText("Choose Best Model (for Prediction):")
-        self.vbox_run_select.addWidget(self.label_choose_best_model)
-
-        self.combo_set_default_model = QtWidgets.QComboBox(parent=self.group_run_select_model)
-        self.combo_set_default_model.setObjectName("combo_set_default_model")
-        self.combo_set_default_model.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
-        self.vbox_run_select.addWidget(self.combo_set_default_model)
+        
 
         self.hbox_compare.addWidget(self.group_run_select_model)
 
@@ -274,8 +272,8 @@ class Ui_MainWindow(object):
         self.vbox_analysis_charts.addWidget(self.btn_open_city_price_map)
 
         self.hbox_compare.addWidget(self.group_analysis_charts)
-        self.hbox_compare.setStretch(0, 2)
-        self.hbox_compare.setStretch(1, 1)
+        self.hbox_compare.setStretch(0, 1)
+        self.hbox_compare.setStretch(1, 3)
 
         self.tabWidget.addTab(self.tab_model_compare, "So sánh Model")
 
@@ -338,6 +336,18 @@ class Ui_MainWindow(object):
         self.group_predict_actions = QtWidgets.QGroupBox(parent=self.tab_predict)
         self.group_predict_actions.setTitle("Kết quả & Tác vụ")
         self.vbox_predict_actions = QtWidgets.QVBoxLayout(self.group_predict_actions)
+        # Hàng chọn model mặc định đặt lên đầu và thu gọn khoảng cách
+        self.hbox_default_model = QtWidgets.QHBoxLayout()
+        self.hbox_default_model.setContentsMargins(6, 4, 6, 4)
+        self.hbox_default_model.setSpacing(6)
+        self.label_choose_best_model = QtWidgets.QLabel(parent=self.group_predict_actions)
+        self.label_choose_best_model.setText("Choose Best Model (for Prediction):")
+        self.hbox_default_model.addWidget(self.label_choose_best_model)
+        self.combo_set_default_model = QtWidgets.QComboBox(parent=self.group_predict_actions)
+        self.combo_set_default_model.setObjectName("combo_set_default_model")
+        self.combo_set_default_model.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
+        self.hbox_default_model.addWidget(self.combo_set_default_model)
+        self.vbox_predict_actions.addLayout(self.hbox_default_model)
 
         self.group_current_model = QtWidgets.QGroupBox(parent=self.group_predict_actions)
         self.group_current_model.setTitle("Thông tin Model Đang Dùng")
@@ -390,9 +400,10 @@ class Ui_MainWindow(object):
         self.vbox_predict_actions.setStretch(1, 0)
         self.vbox_predict_actions.setStretch(2, 0)
         self.vbox_predict_actions.setStretch(3, 0)
-        self.vbox_predict_actions.setStretch(4, 1)
-        self.vbox_predict_actions.setStretch(5, 0)
-        self.vbox_predict_actions.setStretch(5, 0)
+        self.vbox_predict_actions.setStretch(4, 0)
+        self.vbox_predict_actions.setStretch(5, 1)
+        self.vbox_predict_actions.setStretch(6, 0)
+        self.vbox_predict_actions.setStretch(7, 0)
 
         self.hbox_predict.addWidget(self.group_predict_actions)
         self.hbox_predict.setStretch(0, 1)
