@@ -2,6 +2,7 @@ import os
 from pypdf import PdfReader
 import gradio as gr
 import google.generativeai as genai
+import socket
 
 _API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "AIzaSyDxOqoIkpsNfDfHzfoPtD1yV9BowsIu87o"
 genai.configure(api_key=_API_KEY)
@@ -62,9 +63,50 @@ demo = gr.ChatInterface(
     theme=gr.themes.Soft()
 )
 
+def _find_free_port(preferred: int | None = None, extra_candidates: list[int] | None = None) -> int:
+    candidates = []
+    if preferred and preferred > 0:
+        candidates.append(int(preferred))
+    env_p = os.environ.get("GRADIO_SERVER_PORT") or os.environ.get("CHATBOT_PORT")
+    try:
+        env_p_i = int(env_p) if env_p else None
+    except Exception:
+        env_p_i = None
+    if env_p_i and env_p_i not in candidates:
+        candidates.append(env_p_i)
+    if extra_candidates:
+        for p in extra_candidates:
+            if p not in candidates:
+                candidates.append(int(p))
+    if not candidates:
+        candidates = list(range(7860, 7871))
+    for p in candidates:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind(("127.0.0.1", int(p)))
+            return int(p)
+        except Exception:
+            continue
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+    return 0
+
 if __name__ == "__main__":
     print("Bot Tư vấn Giá Nhà")
     print(f"Đã tải kiến thức PDF: {len(knowledge_text):,} ký tự")
-    _port = int(os.environ.get("CHATBOT_PORT", "7860"))
-    _share = (os.environ.get("CHATBOT_SHARE", "false").lower() == "true")
-    demo.launch(share=_share, server_name="127.0.0.1", server_port=_port)
+    env_port = os.environ.get("GRADIO_SERVER_PORT") or os.environ.get("CHATBOT_PORT")
+    try:
+        pref = int(env_port) if env_port else None
+    except Exception:
+        pref = None
+    port = _find_free_port(preferred=pref, extra_candidates=list(range(7860, 7871)))
+    share_flag = (os.environ.get("CHATBOT_SHARE", "false").lower() == "true")
+    if port > 0:
+        print(f"[INFO] Khởi chạy Gradio tại port {port}")
+        demo.launch(share=share_flag, server_name="127.0.0.1", server_port=port)
+    else:
+        print("[WARN] Không tìm được port trống; để Gradio tự chọn.")
+        demo.launch(share=share_flag, server_name="127.0.0.1")

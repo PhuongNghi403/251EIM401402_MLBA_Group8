@@ -183,9 +183,9 @@ class PredictionLogicMixin:
             pass
         try:
             import os
-            csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
+            csv_path = os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv")
             if not os.path.isfile(csv_path):
-                csv_path = os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv")
+                csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
             df = pd.read_csv(csv_path)
             preferred_feats = [
                 "Avg Area Income",
@@ -282,7 +282,7 @@ class PredictionLogicMixin:
             x = np.arange(len(y))
             self.ax_history.plot(x, y, marker="o", color=getattr(self, "history_line_color", "#a86fd6"))
             self.ax_history.set_xlabel("Prediction #")
-            self.ax_history.set_ylabel("Predicted Price")
+            self.ax_history.set_ylabel("Predicted Price (USD)")
             self.ax_history.set_title("Predicted price trend over time")
             self.ax_history.grid(True, linestyle="--", alpha=0.4)
         self.canvas_history.draw_idle()

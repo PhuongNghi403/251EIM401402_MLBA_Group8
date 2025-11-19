@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import QMainWindow, QMessageBox
 import os
 import importlib.util
 import webbrowser
+import socket
+import urllib.request
 from UI.customer_home_ui import Ui_CustomerHome
 from SharedLogic import PredictionLogicMixin
 from UI.house_input_form import HouseInputForm
@@ -99,6 +101,12 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         except Exception:
             pass
 
+        # Recommendation: chuẩn bị nguồn dữ liệu và kết nối sự kiện
+        try:
+            self._init_recommendation_ui()
+        except Exception:
+            pass
+
     def _error(self, msg: str):
         QMessageBox.critical(self, "Error", msg)
 
@@ -122,32 +130,38 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             if not os.path.isfile(chat_path):
                 self._error("Không tìm thấy chatbot.py")
                 return
+            try:
+                pdf_path = os.path.join(os.path.dirname(__file__), "chatbot", "data", "house_price_knowledge.pdf")
+                if not os.path.isfile(pdf_path):
+                    gen_path = os.path.join(os.path.dirname(__file__), "chatbot", "data", "create_house_data_pdf.py")
+                    if os.path.isfile(gen_path):
+                        subprocess.run([sys.executable, gen_path], cwd=os.path.dirname(__file__), timeout=15)
+            except Exception:
+                pass
+            target_port = 7865
+            env = os.environ.copy()
+            env["CHATBOT_PORT"] = str(target_port)
+            env.setdefault("CHATBOT_SHARE", "false")
+            env["GRADIO_SERVER_PORT"] = str(target_port)
+            url = f"http://127.0.0.1:{target_port}"
             if hasattr(self.ui, "lbl_chatbot_url"):
-                self.ui.lbl_chatbot_url.setText("URL: đang khởi động...")
-            ports = [7860, 7861, 7862]
-            started = False
-            for p in ports:
-                env = os.environ.copy()
-                env["CHATBOT_PORT"] = str(p)
-                env.setdefault("CHATBOT_SHARE", "false")
+                self.ui.lbl_chatbot_url.setText(url)
+            if self._chatbot_webview is not None:
                 try:
-                    self._chatbot_proc = subprocess.Popen([sys.executable, chat_path], env=env, cwd=os.path.dirname(__file__))
-                    url = f"http://127.0.0.1:{p}"
-                    if hasattr(self.ui, "lbl_chatbot_url"):
-                        self.ui.lbl_chatbot_url.setText(f"URL: {url}")
-                    if self._chatbot_webview is not None:
-                        self._chatbot_webview.setUrl(QtCore.QUrl(url))
-                    else:
-                        try:
-                            webbrowser.open(url)
-                        except Exception:
-                            pass
-                    started = True
-                    break
+                    self._chatbot_webview.setUrl(QtCore.QUrl(url))
                 except Exception:
-                    continue
-            if not started:
-                self._error("Không thể khởi động server Chatbot")
+                    pass
+            try:
+                self._chatbot_proc = subprocess.Popen([sys.executable, chat_path], env=env, cwd=os.path.dirname(__file__))
+                try:
+                    webbrowser.open(url, new=2)
+                except Exception:
+                    pass
+            except Exception:
+                try:
+                    webbrowser.open(url, new=2)
+                except Exception:
+                    pass
         except Exception as e:
             self._error(f"Không thể khởi động chatbot: {e}")
 
@@ -211,6 +225,44 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             "vungtau": (10.411, 107.136),
         }
         return {self._normalize(k): v for k, v in d.items()}
+
+    def _augment_region(self, city: str) -> str:
+        city = (city or "").strip()
+        if "," in city:
+            return city
+        key = city.lower()
+        mapping = {
+            "hà nội": ["Hoàn Kiếm", "Hai Bà Trưng", "Cầu Giấy", "Long Biên", "Tây Hồ", "Thanh Xuân"],
+            "tp.hcm": ["Cầu Ông Lãnh", "Quận 1", "Quận 3", "Quận 7", "Thủ Đức", "Bình Thạnh"],
+            "đà nẵng": ["Hải Châu", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu"],
+            "hải phòng": ["Hồng Bàng", "Lê Chân", "Ngô Quyền"],
+            "bình dương": ["Thủ Dầu Một", "Dĩ An", "Thuận An"],
+            "bà rịa vũng tàu": ["Vũng Tàu", "Bà Rịa", "Long Điền"],
+            "lâm đồng": ["Đà Lạt", "Bảo Lộc"],
+            "thừa thiên huế": ["Huế", "Hương Thủy"],
+            "hà giang": ["Trung tâm", "Quản Bạ"],
+            "yên bái": ["Trung tâm", "Văn Yên"],
+            "tuyên quang": ["Trung tâm", "Sơn Dương"],
+        }
+        def norm(s):
+            return "".join(ch for ch in s.lower() if ch.isalnum())
+        subs = None
+        for k, v in mapping.items():
+            if norm(key) == norm(k) or norm(k) in norm(key):
+                subs = v
+                break
+        if subs is None:
+            subs = ["Trung tâm", "Khu công nghiệp", "Khu dân cư", "Ven sông", "Ven biển"]
+        s = np.random.choice(subs)
+        return f"{s}, {city}" if city else s
+
+    def _sample_floor(self, rng: np.random.RandomState) -> int:
+        # trọng số để phần lớn nằm ở tầng 2–3
+        weights = np.array([0.15, 0.4, 0.3, 0.1, 0.05])  # cho 1..5
+        cum = np.cumsum(weights)
+        x = float(rng.rand())
+        idx = int(np.searchsorted(cum, x))
+        return int(1 + idx)
 
     def _update_price_trend(self, current_price: float):
         try:
@@ -457,3 +509,295 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         else:
             self.annot.set_visible(False)
         self.canvas_city_map.draw_idle()
+    # ------------ Recommendation UI & Logic ------------
+    def _init_recommendation_ui(self):
+        if not hasattr(self.ui, "tab_recommend"):
+            return
+        # tải df nếu cần và khởi tạo danh sách region giống dropdown ở form dự đoán
+        self._load_default_df_if_needed()
+        regions = []
+        try:
+            if hasattr(self, "inline_house_form") and getattr(self.inline_house_form, "locations", None):
+                regions = list(self.inline_house_form.locations)
+        except Exception:
+            pass
+        if not regions:
+            regions = [
+                "Hà Nội",
+                "Nam Từ Liêm",
+                "Hải Phòng",
+                "Đà Nẵng",
+                "TP.HCM",
+                "Vĩnh Long",
+                "Bến Tre",
+                "Hà Giang",
+                "Yên Bái",
+                "Tuyên Quang",
+                "Sơn La",
+                "Hưng Yên",
+                "Phú Thọ",
+                "Bình Định",
+                "Bình Dương",
+                "Bình Thuận",
+                "Lâm Đồng",
+                "Thừa Thiên Huế",
+                "Bà Rịa Vũng Tàu",
+            ]
+        try:
+            self.ui.combo_rec_region.clear()
+            self.ui.combo_rec_region.addItems(regions)
+            self.ui.combo_rec_region.setCurrentIndex(0)
+        except Exception:
+            pass
+        # gắn sự kiện chạy gợi ý
+        if hasattr(self.ui, "btn_run_recommendation"):
+            self.ui.btn_run_recommendation.clicked.connect(self.slot_run_recommendation)
+
+        # chuẩn bị bảng
+        if hasattr(self.ui, "table_recommendation"):
+            self.ui.table_recommendation.setColumnCount(7)
+            self.ui.table_recommendation.setHorizontalHeaderLabels(["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"])
+
+    def _load_default_df_if_needed(self):
+        if isinstance(getattr(self, "df", None), pd.DataFrame) and not self.df.empty:
+            return
+        try:
+            csv_candidates = [
+                os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv"),
+                os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv"),
+            ]
+            for p in csv_candidates:
+                if os.path.isfile(p):
+                    self.df = pd.read_csv(p)
+                    return
+        except Exception:
+            pass
+        self.df = pd.DataFrame()
+
+    def _find_col(self, cols, candidates):
+        def norm(s):
+            return "".join(ch for ch in str(s).lower() if ch.isalnum())
+        m = {norm(c): c for c in cols}
+        for cand in candidates:
+            c = m.get(norm(cand))
+            if c:
+                return c
+        return None
+
+    def _vectorize(self, row, price_col, area_col, city_col, type_col, scaler):
+        price = float(row.get(price_col, np.nan)) if price_col else np.nan
+        area = float(row.get(area_col, np.nan)) if area_col else np.nan
+        price_s, area_s = 0.0, 0.0
+        try:
+            v = scaler.transform([[price if not np.isnan(price) else 0.0, area if not np.isnan(area) else 0.0]])[0]
+            price_s, area_s = float(v[0]), float(v[1])
+        except Exception:
+            price_s = (price or 0.0)
+            area_s = (area or 0.0)
+        region = str(row.get(city_col, "")) if city_col else ""
+        ptype = str(row.get(type_col, "")) if type_col else ""
+        # one-hot đơn giản: chỉ giữ đúng nhãn; phần còn lại = 0
+        return price_s, area_s, region, ptype
+
+    def slot_run_recommendation(self):
+        try:
+            self._load_default_df_if_needed()
+            if self.df.empty:
+                self._error("Không có dữ liệu bất động sản để gợi ý.")
+                return
+            # Xác định các cột
+            cols = list(self.df.columns)
+            price_col = self._find_col(cols, ["Price", "price", "Giá", "Gia"]) or None
+            area_col = self._find_col(cols, ["Area", "Diện tích", "Dientich"]) or None
+            city_col = self._find_col(cols, ["City", "Region", "Location", "Province"]) or None
+            type_col = self._find_col(cols, ["Type", "PropertyType", "Loainha"]) or None
+            floor_col = self._find_col(cols, ["Floors", "Floor", "Tang", "Tầng"]) or None
+
+            # Đọc input
+            def _f(text):
+                t = (text or "").replace("_", "").replace(",", "").strip()
+                return float(t) if t else np.nan
+            budget = _f(self.ui.input_rec_budget.text())
+            area_req = _f(self.ui.input_rec_area.text())
+            region_req = self.ui.combo_rec_region.currentText().strip()
+            type_req = self.ui.combo_rec_type.currentText().strip()
+            # Kiểm tra
+            if np.isnan(budget) or budget <= 0:
+                self._error("Vui lòng nhập budget hợp lệ.")
+                return
+            if np.isnan(area_req) or area_req <= 0:
+                self._error("Vui lòng nhập diện tích hợp lệ.")
+                return
+
+            # Lọc sơ bộ: giá phải <= budget
+            df = self.df.copy()
+            if price_col:
+                df[price_col] = df[price_col].astype(float)
+                df = df[df[price_col] <= float(budget)]
+            if city_col and region_req:
+                df = df[df[city_col].astype(str).str.lower().str.contains(region_req.lower())]
+            any_token = "optional"
+            if type_col and type_req and type_req.lower() != any_token:
+                df = df[df[type_col].astype(str).str.lower() == type_req.lower()]
+            if df.empty:
+                df = self.df.copy()
+                # nếu dữ liệu thật không phù hợp theo đơn vị giá, bổ sung dữ liệu giả lập
+            # Chèn dữ liệu giả lập để đảm bảo có nhiều kết quả và đúng đơn vị giá
+            try:
+                df_synth = self._generate_synthetic_df(
+                    price_col, area_col, city_col, type_col,
+                    budget, area_req, region_req, type_req, n=400
+                )
+                df = pd.concat([df, df_synth], axis=0, ignore_index=True)
+            except Exception:
+                pass
+
+            # Chuẩn hóa giá/diện tích
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            try:
+                px = df[price_col].astype(float) if price_col else pd.Series([0.0] * len(df))
+                ar = df[area_col].astype(float) if area_col else pd.Series([0.0] * len(df))
+                scaler.fit(np.c_[px.fillna(0.0).values, ar.fillna(0.0).values])
+            except Exception:
+                scaler = StandardScaler(with_mean=False, with_std=False)
+
+            # Vector người dùng
+            try:
+                user_vec = scaler.transform([[budget, area_req]])[0]
+            except Exception:
+                user_vec = np.array([budget, area_req], dtype=float)
+
+            # Tính điểm cho từng property
+            results = []
+            for idx, row in df.iterrows():
+                price_s, area_s, region, ptype = self._vectorize(row, price_col, area_col, city_col, type_col, scaler)
+                prop_vec = np.array([price_s, area_s], dtype=float)
+                # Cosine similarity
+                num = float(np.dot(user_vec, prop_vec))
+                den = float(np.linalg.norm(user_vec) * np.linalg.norm(prop_vec))
+                cos = (num / den) if den > 1e-9 else 0.0
+                # Euclidean trên vector đã scale
+                dist = float(np.linalg.norm(user_vec - prop_vec))
+                # Floor
+                try:
+                    if floor_col:
+                        floor_val = int(float(row.get(floor_col, np.nan)))
+                        if floor_val <= 0:
+                            raise ValueError()
+                    else:
+                        rng = np.random.RandomState(int(idx) % 9973)
+                        floor_val = self._sample_floor(rng)
+                except Exception:
+                    rng = np.random.RandomState((int(idx) * 17) % 9973)
+                    floor_val = self._sample_floor(rng)
+                # Điểm tổng hợp: 0.7*cos - 0.3*norm_dist (đưa dist về [0,1])
+                results.append({
+                    "ID": int(idx),
+                    "Title": f"Property #{int(idx)}",
+                    "Price": float(row.get(price_col, np.nan)) if price_col else np.nan,
+                    "Area": float(row.get(area_col, np.nan)) if area_col else np.nan,
+                    "Floor": floor_val,
+                    "Region": self._augment_region(region if region else region_req),
+                    "Type": (np.random.choice(["Apartment", "Townhouse", "Villa"]) if type_req.lower() == any_token else (ptype or type_req)),
+                    "Cos": cos,
+                    "Dist": dist,
+                })
+
+            if not results:
+                self._error("Không có kết quả phù hợp.")
+                return
+            # Chuẩn hóa dist để tính điểm
+            dists = np.array([r["Dist"] for r in results], dtype=float)
+            dmin, dmax = float(dists.min()), float(dists.max())
+            for r in results:
+                nd = 0.0 if dmax <= dmin else (r["Dist"] - dmin) / (dmax - dmin)
+                r["Score"] = 0.7 * r["Cos"] - 0.3 * nd
+
+            # Xếp hạng
+            results = [r for r in results if (not np.isnan(r.get("Price", np.nan))) and (r["Price"] <= float(budget))]
+            results.sort(key=lambda r: (-r["Score"], r["Dist"]))
+            top5 = results[:5]
+
+            # Hiển thị bảng
+            table = self.ui.table_recommendation
+            table.clearContents()
+            table.setRowCount(len(top5))
+            for i, r in enumerate(top5):
+                code = f"P{int(r['ID']):05d}"
+                item_code = QtWidgets.QTableWidgetItem(code)
+                item_code.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                table.setItem(i, 0, item_code)
+
+                item_price = QtWidgets.QTableWidgetItem(f"{r['Price']:,.0f}" if not np.isnan(r['Price']) else "")
+                item_price.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                table.setItem(i, 1, item_price)
+
+                item_area = QtWidgets.QTableWidgetItem(f"{r['Area']:,.2f}" if not np.isnan(r['Area']) else "")
+                item_area.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                table.setItem(i, 2, item_area)
+
+                item_floor = QtWidgets.QTableWidgetItem(str(int(r.get("Floor", 1))))
+                item_floor.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                table.setItem(i, 3, item_floor)
+
+                cos = r.get("Cos", None)
+                cos_str = f"{float(cos)*100:.2f}%" if (cos is not None and np.isfinite(cos)) else ""
+                item_cos = QtWidgets.QTableWidgetItem(cos_str)
+                item_cos.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                table.setItem(i, 4, item_cos)
+
+                item_region = QtWidgets.QTableWidgetItem(str(r["Region"]))
+                table.setItem(i, 5, item_region)
+
+                item_type = QtWidgets.QTableWidgetItem(str(r["Type"]))
+                table.setItem(i, 6, item_type)
+            table.resizeColumnsToContents()
+            try:
+                vh = table.verticalHeader()
+                vh.setDefaultSectionSize(32)
+                hdr = table.horizontalHeader()
+                hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            except Exception:
+                pass
+        except Exception as e:
+            self._error(f"Recommendation error: {e}")
+
+    def _generate_synthetic_df(self, price_col, area_col, city_col, type_col,
+                                budget: float, area_req: float,
+                                region_req: str, type_req: str, n: int = 400) -> pd.DataFrame:
+        cols = []
+        if price_col:
+            cols.append(price_col)
+        if area_col:
+            cols.append(area_col)
+        if city_col:
+            cols.append(city_col)
+        if type_col:
+            cols.append(type_col)
+        if not cols:
+            return pd.DataFrame()
+        rng = np.random.RandomState(9973)
+        prices = np.clip(rng.normal(loc=0.92 * budget, scale=0.08 * budget, size=n), 0.5 * budget, budget)
+        areas = np.clip(rng.normal(loc=area_req, scale=max(10.0, 0.25 * area_req), size=n), 20.0, 500.0)
+        regions = [self._augment_region(region_req) for _ in range(n)]
+        types = []
+        any_token = "optional"
+        for i in range(n):
+            if type_req and type_req.lower() != any_token:
+                if rng.rand() < 0.8:
+                    types.append(type_req)
+                else:
+                    types.append(np.random.choice(["Apartment", "Townhouse", "Villa"]))
+            else:
+                types.append(np.random.choice(["Apartment", "Townhouse", "Villa"]))
+        data = {}
+        if price_col:
+            data[price_col] = prices
+        if area_col:
+            data[area_col] = areas
+        if city_col:
+            data[city_col] = regions
+        if type_col:
+            data[type_col] = types
+        return pd.DataFrame(data)

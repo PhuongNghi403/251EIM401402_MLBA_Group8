@@ -331,7 +331,7 @@ class HouseInputForm(QDialog):
             population = values_by_name.get("Area Population", 0.0)
             pred = max(0.0, income * 100.0 + rooms * 50000.0 + bedrooms * 30000.0 + population * 0.1 - age * 10000.0)
 
-        self.lbl_result.setText(f"Predicted Price: {pred:,.2f}")
+        self.lbl_result.setText(f"Predicted Price (USD): {pred:,.2f}")
         try:
             if hasattr(self._parent, "_update_price_trend"):
                 self._parent._update_price_trend(pred)

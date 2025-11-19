@@ -64,7 +64,7 @@ class Ui_CustomerHome(object):
         self.vbox_price_chart.addLayout(self.hbox_price_charts)
         self.vbox_predict.addWidget(self.group_price_chart)
         
-        self.tabWidget.addTab(self.tab_predict, "Dự đoán Giá")
+        self.tabWidget.addTab(self.tab_predict, "Price Prediction")
         self.tab_history = QtWidgets.QWidget()
         self.tab_history.setObjectName("tab_history")
         self.vbox_history = QtWidgets.QVBoxLayout(self.tab_history)
@@ -83,9 +83,26 @@ class Ui_CustomerHome(object):
         self.vbox_history_details.setObjectName("vbox_history_details")
         self.table_history = QtWidgets.QTableWidget(parent=self.group_history_details)
         self.table_history.setObjectName("table_history")
+        try:
+            self.table_history.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+        except Exception:
+            pass
+        hdr_hist = self.table_history.horizontalHeader()
+        try:
+            hdr_hist.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
+        try:
+            hdr_hist.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            self.table_history.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.vbox_history_details.addWidget(self.table_history)
         self.vbox_history.addWidget(self.group_history_details)
-        self.tabWidget.addTab(self.tab_history, "Lịch sử Dự đoán")
+        self.tabWidget.addTab(self.tab_history, "Prediction History")
 
         self.tab_map = QtWidgets.QWidget()
         self.tab_map.setObjectName("tab_map")
@@ -94,7 +111,142 @@ class Ui_CustomerHome(object):
         self.chart_view_city_map = QtWidgets.QWidget(parent=self.tab_map)
         self.chart_view_city_map.setObjectName("chart_view_city_map")
         self.vbox_map.addWidget(self.chart_view_city_map)
-        self.tabWidget.addTab(self.tab_map, "Bản đồ")
+        self.tabWidget.addTab(self.tab_map, "Map")
+
+        # Tab Recommendation (trước Chatbot)
+        self.tab_recommend = QtWidgets.QWidget()
+        self.tab_recommend.setObjectName("tab_recommend")
+        self.vbox_recommend = QtWidgets.QVBoxLayout(self.tab_recommend)
+        self.vbox_recommend.setObjectName("vbox_recommend")
+        try:
+            self.vbox_recommend.setSpacing(12)
+        except Exception:
+            pass
+        # Form nhập yêu cầu người dùng
+        self.lbl_recommend_input_title = QtWidgets.QLabel(parent=self.tab_recommend)
+        self.lbl_recommend_input_title.setObjectName("lbl_recommend_input_title")
+        self.lbl_recommend_input_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.lbl_recommend_input_title.setStyleSheet("color: #4c0c24; font-weight: 700; font-size: 18px; padding: 2px 6px;")
+        self.vbox_recommend.addWidget(self.lbl_recommend_input_title)
+
+        self.group_recommend_input = QtWidgets.QGroupBox(parent=self.tab_recommend)
+        self.group_recommend_input.setObjectName("group_recommend_input")
+        self.form_recommend = QtWidgets.QFormLayout(self.group_recommend_input)
+        self.form_recommend.setObjectName("form_recommend")
+        self.input_rec_budget = QtWidgets.QLineEdit(parent=self.group_recommend_input)
+        self.input_rec_budget.setObjectName("input_rec_budget")
+        self.input_rec_budget.setPlaceholderText("Example: 100,000 (USD)")
+        self.form_recommend.addRow("Budget (USD)", self.input_rec_budget)
+        self.input_rec_area = QtWidgets.QLineEdit(parent=self.group_recommend_input)
+        self.input_rec_area.setObjectName("input_rec_area")
+        self.input_rec_area.setPlaceholderText("Example: 80 (m²)")
+        self.form_recommend.addRow("Floor area (m²)", self.input_rec_area)
+        self.combo_rec_region = QtWidgets.QComboBox(parent=self.group_recommend_input)
+        self.combo_rec_region.setObjectName("combo_rec_region")
+        sp_combo = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.combo_rec_region.setSizePolicy(sp_combo)
+        self.combo_rec_region.setMinimumWidth(360)
+        self.combo_rec_region.setMinimumHeight(28)
+        self.form_recommend.addRow("Region", self.combo_rec_region)
+        self.combo_rec_type = QtWidgets.QComboBox(parent=self.group_recommend_input)
+        self.combo_rec_type.setObjectName("combo_rec_type")
+        self.combo_rec_type.addItems(["Optional", "Apartment", "Townhouse", "Villa"])  # thêm lựa chọn any
+        self.form_recommend.addRow("Property type", self.combo_rec_type)
+        self.btn_run_recommendation = QtWidgets.QPushButton(parent=self.group_recommend_input)
+        self.btn_run_recommendation.setObjectName("btn_run_recommendation")
+        self.btn_run_recommendation.setText("Run Recommendation")
+        self.form_recommend.addRow(self.btn_run_recommendation)
+        self.vbox_recommend.addWidget(self.group_recommend_input)
+        # Bảng kết quả
+        self.group_recommend_results = QtWidgets.QGroupBox(parent=self.tab_recommend)
+        self.group_recommend_results.setObjectName("group_recommend_results")
+        sizeExpand = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.group_recommend_results.setSizePolicy(sizeExpand)
+        try:
+            self.group_recommend_results.setFixedHeight(420)
+        except Exception:
+            pass
+        self.vbox_recommend_results = QtWidgets.QVBoxLayout(self.group_recommend_results)
+        self.vbox_recommend_results.setObjectName("vbox_recommend_results")
+        self.table_recommendation = QtWidgets.QTableWidget(parent=self.group_recommend_results)
+        self.table_recommendation.setObjectName("table_recommendation")
+        self.table_recommendation.setColumnCount(7)
+        self.table_recommendation.setHorizontalHeaderLabels(["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"])
+        self.table_recommendation.setAlternatingRowColors(True)
+        self.table_recommendation.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_recommendation.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_recommendation.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+        try:
+            self.table_recommendation.setFixedHeight(360)
+        except Exception:
+            pass
+        hdr = self.table_recommendation.horizontalHeader()
+        try:
+            hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
+        try:
+            hdr.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            self.table_recommendation.verticalHeader().setVisible(False)
+        except Exception:
+            pass
+        self.vbox_recommend_results.addWidget(self.table_recommendation)
+        self.lbl_recommend_results_title = QtWidgets.QLabel(parent=self.tab_recommend)
+        self.lbl_recommend_results_title.setObjectName("lbl_recommend_results_title")
+        self.lbl_recommend_results_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.lbl_recommend_results_title.setStyleSheet("color: #4c0c24; font-weight: 700; font-size: 18px; padding: 2px 6px;")
+        self.vbox_recommend.addWidget(self.lbl_recommend_results_title)
+        self.vbox_recommend.addWidget(self.group_recommend_results, 1)
+        try:
+            self.vbox_recommend.addSpacing(12)
+        except Exception:
+            pass
+        self.group_recommend_doc = QtWidgets.QGroupBox(parent=self.tab_recommend)
+        self.group_recommend_doc.setObjectName("group_recommend_doc")
+        self.vbox_recommend_doc = QtWidgets.QVBoxLayout(self.group_recommend_doc)
+        self.vbox_recommend_doc.setObjectName("vbox_recommend_doc")
+        self.group_recommend_doc.setContentsMargins(8, 0, 8, 8)
+        self.vbox_recommend_doc.setContentsMargins(8, 0, 8, 8)
+        self.txt_recommend_doc = QtWidgets.QLabel(parent=self.group_recommend_doc)
+        self.txt_recommend_doc.setObjectName("txt_recommend_doc")
+        self.txt_recommend_doc.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        self.txt_recommend_doc.setWordWrap(True)
+        self.txt_recommend_doc.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.txt_recommend_doc.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+        self.group_recommend_doc.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+        self.group_recommend_doc.setStyleSheet("QLabel#txt_recommend_doc { background: #ffffff; color: #2b2342; padding: 12px; }")
+        self.vbox_recommend_doc.addWidget(self.txt_recommend_doc)
+        self.lbl_goal_title = QtWidgets.QLabel(parent=self.tab_recommend)
+        self.lbl_goal_title.setObjectName("lbl_goal_title")
+        self.lbl_goal_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        sp_caption = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.lbl_goal_title.setSizePolicy(sp_caption)
+        self.lbl_goal_title.setMinimumHeight(40)
+        self.lbl_goal_title.setStyleSheet(
+            "QLabel#lbl_goal_title {"
+            " background: #f8e1f4;"
+            " color: #4c0c24;"
+            " font-weight: 700;"
+            " font-size: 18px;"
+            " border: 1px solid #d6b6f5;"
+            " border-radius: 8px;"
+            " padding: 4px 8px;"
+            "}"
+        )
+        self.vbox_recommend.addWidget(self.lbl_goal_title)
+        self.vbox_recommend.addWidget(self.group_recommend_doc)
+        try:
+            self.vbox_recommend.setStretch(0, 0)
+            self.vbox_recommend.setStretch(1, 0)
+            self.vbox_recommend.setStretch(2, 0)
+            self.vbox_recommend.setStretch(3, 1)
+            self.vbox_recommend.setStretch(4, 0)
+        except Exception:
+            pass
+        self.tabWidget.addTab(self.tab_recommend, "Recommendation")
 
         # Tab Chatbot
         self.tab_chatbot = QtWidgets.QWidget()
@@ -158,6 +310,31 @@ class Ui_CustomerHome(object):
         self.btn_export_history.setText(_translate("CustomerHome", "Export History (CSV)"))
         self.group_house_inline.setTitle(_translate("CustomerHome", "House Input Form"))
         self.group_price_chart.setTitle(_translate("CustomerHome", "Price Trend (2015–2035)"))
-        self.group_chatbot.setTitle(_translate("CustomerHome", "Tư vấn giá nhà (Chatbot)"))
+        self.group_chatbot.setTitle(_translate("CustomerHome", "House Price Advisory (Chatbot)"))
         self.btn_start_chatbot.setText(_translate("CustomerHome", "Start Chatbot"))
-        self.lbl_chatbot_url.setText(_translate("CustomerHome", "URL: chưa khởi động"))
+        self.lbl_chatbot_url.setText(_translate("CustomerHome", "URL: not started"))
+
+        self.group_recommend_input.setTitle(_translate("CustomerHome", "User Input"))
+        self.group_recommend_results.setTitle(_translate("CustomerHome", "Recommendations"))
+        self.group_recommend_doc.setTitle("")
+        self.lbl_goal_title.setText(_translate("CustomerHome", "Goal"))
+        self.lbl_recommend_input_title.setText(_translate("CustomerHome", "User Input"))
+        self.lbl_recommend_results_title.setText(_translate("CustomerHome", "Recommendations"))
+        self.txt_recommend_doc.setText(_translate("CustomerHome", (
+            "<div style=\"font-family: Segoe UI, sans-serif;\">"
+            "<ul style=\"margin:0 0 6px 16px;\">"
+            "<li>Suggest the Top 5 properties that best match the details you enter.</li>"
+            "<li>Prioritize listings with strong fit across price, floor area, region, and property type.</li>"
+            "<li>Help you quickly find options that align with your budget and preferences.</li>"
+            "<li>Support decision‑making by comparing suitability scores across homes.</li>"
+            "</ul>"
+            "</div>"
+        )))
+        try:
+            h = int(self.txt_recommend_doc.sizeHint().height()) + 12
+            h = max(80, min(h, 200))
+            self.txt_recommend_doc.setMinimumHeight(h)
+            self.txt_recommend_doc.setMaximumHeight(h)
+            self.group_recommend_doc.setMaximumHeight(h + 16)
+        except Exception:
+            pass
