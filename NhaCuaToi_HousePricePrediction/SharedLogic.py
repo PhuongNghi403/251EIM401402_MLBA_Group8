@@ -86,19 +86,14 @@ class PredictionLogicMixin:
         if not req_names:
             req_names = getattr(self, "feature_names", [])
         if not req_names or len(req_names) != 5:
-            req_names = [
-                "Avg Area Income",
-                "Avg Area House Age",
-                "Avg Area Number of Rooms",
-                "Avg Area Number of Bedrooms",
-                "Area Population",
-            ]
+            req_names = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
         mapping = {
-            "Avg Area Income": self.ui.input_area_income,
-            "Avg Area House Age": self.ui.input_house_age,
-            "Avg Area Number of Rooms": self.ui.input_num_rooms,
-            "Avg Area Number of Bedrooms": self.ui.input_num_bedrooms,
-            "Area Population": self.ui.input_population,
+            
+            "Area": getattr(self.ui, "input_area", None),
+            "Frontage": getattr(self.ui, "input_frontage", None),
+            "Floors": getattr(self.ui, "input_floors", None),
+            "Bedrooms": getattr(self.ui, "input_bedrooms", None),
+            "Bathrooms": getattr(self.ui, "input_bathrooms", None),
         }
         vals_by_name = []
         if all(n in mapping for n in req_names):
@@ -106,11 +101,11 @@ class PredictionLogicMixin:
                 vals_by_name.append(self._get_float(mapping[n]))
         else:
             ordered_fields = [
-                self.ui.input_area_income,
-                self.ui.input_house_age,
-                self.ui.input_num_rooms,
-                self.ui.input_num_bedrooms,
-                self.ui.input_population,
+                getattr(self.ui, "input_area", None),
+                getattr(self.ui, "input_frontage", None),
+                getattr(self.ui, "input_floors", None),
+                getattr(self.ui, "input_bedrooms", None),
+                getattr(self.ui, "input_bathrooms", None),
             ]
             for i in range(5):
                 w = ordered_fields[i] if i < len(ordered_fields) else None
