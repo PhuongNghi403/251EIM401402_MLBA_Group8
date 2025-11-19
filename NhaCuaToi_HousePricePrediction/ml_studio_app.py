@@ -39,6 +39,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 try:
     from xgboost import XGBRegressor  # optional
     HAS_XGB = True
@@ -837,27 +839,32 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
     def slot_predict(self):
         if self.model_default is None:
-            self._error("No default model selected in Tab 3.")
+            self._ensure_model_for_customer()
+        if self.model_default is None:
+            self._error("No default model available.")
             return
 
-        vals = [
-            self._get_float(self.ui.input_area_income),
-            self._get_float(self.ui.input_house_age),
-            self._get_float(self.ui.input_num_rooms),
-            self._get_float(self.ui.input_num_bedrooms),
-            self._get_float(self.ui.input_population),
-        ]
+        req_names = list(getattr(self.model_default, "feature_names_in_", [])) or list(self.feature_names)
+        if not req_names or len(req_names) != 5:
+            req_names = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
+
+        mapping = {
+            "Area": getattr(self.ui, "input_area", None),
+            "Frontage": getattr(self.ui, "input_frontage", None),
+            "Floors": getattr(self.ui, "input_floors", None),
+            "Bedrooms": getattr(self.ui, "input_bedrooms", None),
+            "Bathrooms": getattr(self.ui, "input_bathrooms", None),
+            
+        }
+        vals = []
+        for name in req_names:
+            w = mapping.get(name)
+            vals.append(self._get_float(w) if w is not None else None)
         if any(v is None for v in vals):
             self._error("Please enter all 5 numeric values.")
             return
-        if len(self.feature_names) != 5:
-            self._error(
-                "The current model was not trained with exactly 5 input features. "
-                "Use a dataset with the USA Housing schema or re-evaluate."
-            )
-            return
 
-        X_input = pd.DataFrame([vals], columns=self.feature_names)
+        X_input = pd.DataFrame([vals], columns=req_names)
         try:
             pred = float(self.model_default.predict(X_input)[0])
         except Exception as e:
@@ -866,13 +873,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
         self.ui.lbl_prediction_result.setText(f"{pred:,.2f}")
         self.save_to_history(
-            input_data=dict(
-                AvgAreaIncome=vals[0],
-                AvgAreaHouseAge=vals[1],
-                AvgAreaNumRooms=vals[2],
-                AvgAreaNumBedrooms=vals[3],
-                AreaPopulation=vals[4],
-            ),
+            input_data={req_names[i]: vals[i] for i in range(len(req_names))},
             result=pred,
             model_name=self._get_model_default_name(),
         )
@@ -1053,35 +1054,45 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
     def _ensure_model_for_customer(self) -> bool:
         if self.model_default is not None:
             return True
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        candidates = [
+            os.path.join(data_dir, "raw_value_dataset.csv"),
+            os.path.join(data_dir, "SuperCleaned_vietnam_housing_dataset.csv"),
+            os.path.join(data_dir, "SuperCleaned_with_20_Random_Cities.csv"),
+        ]
+        csv_path = None
+        for p in candidates:
+            if os.path.isfile(p):
+                csv_path = p
+                break
+        if not csv_path:
+            return False
         try:
-            from NhaCuaToi_HousePricePrediction.FileUtils import FileUtils
-            pkl_path = os.path.join(os.path.dirname(__file__), "data", "SaveModelTest1.pkl")
-            if os.path.isfile(pkl_path):
-                m = FileUtils.loadmodel(pkl_path)
-                if m is not None:
-                    self.model_default = m
-                    if not self.feature_names or len(self.feature_names) != 5:
-                        self.feature_names = [
-                            "Avg Area Income",
-                            "Avg Area House Age",
-                            "Avg Area Number of Rooms",
-                            "Avg Area Number of Bedrooms",
-                            "Area Population",
-                        ]
-                    return True
+            df = pd.read_csv(csv_path)
         except Exception:
-            pass
+            return False
+        req_feats = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
+        for f in req_feats:
+            if f not in df.columns:
+                df[f] = 0.0
+        target = "Price" if "Price" in df.columns else None
+        if not target:
+            return False
+        X = df[req_feats].select_dtypes(include=[np.number])
+        y = df[target].astype(float).fillna(0.0)
+        pipe = Pipeline([
+            ("imputer", SimpleImputer(strategy="constant", fill_value=0.0)),
+            ("reg", LinearRegression()),
+        ])
         try:
-            csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
-            if os.path.isfile(csv_path):
-                self.df = pd.read_csv(csv_path)
-                model, metrics, _ = self.run_training_process("LinearRegression", train_rate=int(self.ui.spin_train_rate.value()))
-                if model is not None:
-                    self.model_default = model
-                    return True
+            pipe.fit(X, y)
         except Exception:
-            pass
-        return False
+            return False
+        self.model_default = pipe
+        self.df = df
+        self.feature_names = req_feats
+        self.target_name = target
+        return True
 
     def apply_role_permissions(self):
         if self.current_role == "customer":
