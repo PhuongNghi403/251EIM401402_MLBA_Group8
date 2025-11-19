@@ -3,7 +3,8 @@ from pypdf import PdfReader
 import gradio as gr
 import google.generativeai as genai
 
-genai.configure(api_key="AIzaSyDxOqoIkpsNfDfHzfoPtD1yV9BowsIu87o")
+_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "AIzaSyDxOqoIkpsNfDfHzfoPtD1yV9BowsIu87o"
+genai.configure(api_key=_API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 def load_pdf_knowledge(pdf_path="data/house_price_knowledge.pdf"):
@@ -64,4 +65,6 @@ demo = gr.ChatInterface(
 if __name__ == "__main__":
     print("Bot Tư vấn Giá Nhà")
     print(f"Đã tải kiến thức PDF: {len(knowledge_text):,} ký tự")
-    demo.launch(share=True)
+    _port = int(os.environ.get("CHATBOT_PORT", "7860"))
+    _share = (os.environ.get("CHATBOT_SHARE", "false").lower() == "true")
+    demo.launch(share=_share, server_name="127.0.0.1", server_port=_port)

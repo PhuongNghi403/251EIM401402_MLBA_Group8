@@ -26,25 +26,67 @@ class HouseInputForm(QDialog):
 
     def _init_mappings(self):
         self.locations = [
-            "District 1",
-            "District 7",
-            "Thu Duc",
-            "Binh Thanh",
-            "Tan Binh",
+            "Hà Nội",
+            "Nam Từ Liêm",
+            "Hải Phòng",
+            "Đà Nẵng",
+            "TP.HCM",
+            "Vĩnh Long",
+            "Bến Tre",
+            "Hà Giang",
+            "Yên Bái",
+            "Tuyên Quang",
+            "Sơn La",
+            "Hưng Yên",
+            "Phú Thọ",
+            "Bình Định",
+            "Bình Dương",
+            "Bình Thuận",
+            "Lâm Đồng",
+            "Thừa Thiên Huế",
+            "Bà Rịa Vũng Tàu",
         ]
         self.location_income = {
-            "District 1": 80000.0,
-            "District 7": 65000.0,
-            "Thu Duc": 55000.0,
-            "Binh Thanh": 60000.0,
-            "Tan Binh": 58000.0,
+            "Hà Nội": 90000.0,
+            "Nam Từ Liêm": 80000.0,
+            "Hải Phòng": 70000.0,
+            "Đà Nẵng": 75000.0,
+            "TP.HCM": 95000.0,
+            "Vĩnh Long": 55000.0,
+            "Bến Tre": 52000.0,
+            "Hà Giang": 42000.0,
+            "Yên Bái": 45000.0,
+            "Tuyên Quang": 46000.0,
+            "Sơn La": 44000.0,
+            "Hưng Yên": 60000.0,
+            "Phú Thọ": 50000.0,
+            "Bình Định": 52000.0,
+            "Bình Dương": 70000.0,
+            "Bình Thuận": 53000.0,
+            "Lâm Đồng": 58000.0,
+            "Thừa Thiên Huế": 56000.0,
+            "Bà Rịa Vũng Tàu": 68000.0,
         }
         self.location_population = {
-            "District 1": 150000.0,
-            "District 7": 250000.0,
-            "Thu Duc": 1000000.0,
-            "Binh Thanh": 500000.0,
-            "Tan Binh": 450000.0,
+            "Hà Nội": 8000000.0,
+            "Nam Từ Liêm": 1000000.0,
+            "Hải Phòng": 2000000.0,
+            "Đà Nẵng": 1100000.0,
+            "TP.HCM": 9000000.0,
+            "Vĩnh Long": 1000000.0,
+            "Bến Tre": 1200000.0,
+            "Hà Giang": 800000.0,
+            "Yên Bái": 800000.0,
+            "Tuyên Quang": 700000.0,
+            "Sơn La": 1200000.0,
+            "Hưng Yên": 1200000.0,
+            "Phú Thọ": 1400000.0,
+            "Bình Định": 1500000.0,
+            "Bình Dương": 2500000.0,
+            "Bình Thuận": 1200000.0,
+            "Lâm Đồng": 1300000.0,
+            "Thừa Thiên Huế": 1100000.0,
+            "Bà Rịa Vũng Tàu": 1200000.0,
         }
         self.property_types = ["Apartment", "Townhouse", "Villa"]
         self.age_options = ["New", "< 5 years", "5–10 years", "> 10 years"]
@@ -103,7 +145,7 @@ class HouseInputForm(QDialog):
         self.combo_location.setMinimumHeight(28)
         self.lbl_err_location = QLabel("", self)
         self.lbl_err_location.setStyleSheet("color: #c0392b;")
-        form.addRow("Location (district/area)", self.combo_location)
+        form.addRow("City / province", self.combo_location)
         form.addRow("", self.lbl_err_location)
 
         self.combo_age = QComboBox(self)
@@ -210,13 +252,49 @@ class HouseInputForm(QDialog):
         floors = max(1.0, (bedrooms + bathrooms) / 2.0)
         frontage = max(0.0, area / 10.0) + 0.5 * sum(clean_obj["Amenities"].values())
 
-        values_by_name = {
-            "Area": area,
-            "Bathrooms": bathrooms,
-            "Bedrooms": bedrooms,
-            "Floors": float(floors),
-            "Frontage": float(frontage),
-        }
+        if set(req_names) == set([
+            "Avg Area Income",
+            "Avg Area House Age",
+            "Avg Area Number of Rooms",
+            "Avg Area Number of Bedrooms",
+            "Area Population",
+        ]):
+            loc = clean_obj.get("Location")
+            age_label = clean_obj.get("AgeLabel")
+            prop_type = clean_obj.get("PropertyType")
+            amen_count = int(bool(clean_obj.get("Amenities", {}).get("NearSchool", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearHospital", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearMall", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearPark", 0)))
+            income = float(self.location_income.get(loc, 50000.0))
+            population = float(self.location_population.get(loc, 300000.0))
+            age_val = float(self.age_to_value.get(age_label, 5.0))
+            prop_factor = {"Apartment": 1.0, "Townhouse": 1.1, "Villa": 1.25}.get(prop_type, 1.0)
+            num_rooms = bedrooms + bathrooms + 1.0 + 0.1 * amen_count + 0.2 * prop_factor
+            income = income * (1.0 + 0.10 * prop_factor + 0.02 * amen_count)
+            population = population * (1.0 + 0.01 * amen_count)
+            values_by_name = {
+                "Avg Area Income": income,
+                "Avg Area House Age": age_val,
+                "Avg Area Number of Rooms": float(num_rooms),
+                "Avg Area Number of Bedrooms": float(bedrooms),
+                "Area Population": population,
+            }
+        else:
+            loc = clean_obj.get("Location")
+            age_label = clean_obj.get("AgeLabel")
+            prop_type = clean_obj.get("PropertyType")
+            amen_count = int(bool(clean_obj.get("Amenities", {}).get("NearSchool", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearHospital", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearMall", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearPark", 0)))
+            income = float(self.location_income.get(loc, 60000.0))
+            population = float(self.location_population.get(loc, 1000000.0))
+            age_val = float(self.age_to_value.get(age_label, 5.0))
+            prop_factor = {"Apartment": 1.0, "Townhouse": 1.1, "Villa": 1.25}.get(prop_type, 1.0)
+            floors = max(1.0, floors + 0.2 * prop_factor - 0.1 * age_val)
+            frontage = float(frontage) + 0.0005 * income + 0.005 * (population / 1000.0) + 5.0 * prop_factor - age_val
+            values_by_name = {
+                "Area": area,
+                "Bathrooms": bathrooms,
+                "Bedrooms": bedrooms,
+                "Floors": float(floors),
+                "Frontage": float(frontage),
+            }
 
         cols = []
         vals = []
@@ -254,7 +332,18 @@ class HouseInputForm(QDialog):
             pred = max(0.0, income * 100.0 + rooms * 50000.0 + bedrooms * 30000.0 + population * 0.1 - age * 10000.0)
 
         self.lbl_result.setText(f"Predicted Price: {pred:,.2f}")
-
+        try:
+            if hasattr(self._parent, "_update_price_trend"):
+                self._parent._update_price_trend(pred)
+        except Exception:
+            pass
+        try:
+            breakdown = self._compute_breakdown(clean, values_by_name)
+            if hasattr(self._parent, "_update_price_breakdown"):
+                self._parent._update_price_breakdown(breakdown)
+        except Exception:
+            pass
+ 
         input_summary = {
             "AvgAreaIncome": values_by_name.get("Avg Area Income", 0.0),
             "AvgAreaHouseAge": values_by_name.get("Avg Area House Age", 0.0),
@@ -266,3 +355,25 @@ class HouseInputForm(QDialog):
             self._parent.save_to_history(input_summary, pred, self._parent._get_model_default_name())
         except Exception:
             pass
+
+    def _compute_breakdown(self, clean_obj, values_by_name):
+        area = float(clean_obj.get("FloorArea", 0) or 0)
+        loc = clean_obj.get("Location") or self.combo_location.currentText()
+        amenities = clean_obj.get("Amenities", {})
+        amen_count = int(bool(amenities.get("NearSchool", 0))) + int(bool(amenities.get("NearHospital", 0))) + int(bool(amenities.get("NearMall", 0))) + int(bool(amenities.get("NearPark", 0)))
+        prop = clean_obj.get("PropertyType") or self.combo_property_type.currentText()
+        # scale diện tích để không áp đảo các yếu tố khác trong breakdown
+        w_area = max(0.0, area / 100.0)
+        w_loc = max(0.0, (self.location_income.get(loc, 60000.0) / 1000.0) + (self.location_population.get(loc, 1000000.0) / 100000.0))
+        prop_factor = {"Apartment": 1.0, "Townhouse": 1.1, "Villa": 1.25}.get(prop, 1.0)
+        w_prop = 100.0 * prop_factor
+        w_amen = 20.0 * float(amen_count)
+        s = w_area + w_loc + w_prop + w_amen
+        if s <= 0:
+            return {"Area": 25.0, "Location": 25.0, "Amenities": 25.0, "Property type": 25.0}
+        return {
+            "Area": w_area,
+            "Location": w_loc,
+            "Amenities": w_amen,
+            "Property type": w_prop,
+        }

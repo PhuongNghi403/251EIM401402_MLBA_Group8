@@ -74,28 +74,45 @@ class PredictionLogicMixin:
             self._error("No default model available. Please train or load a model.")
             return
 
-        vals = [
-            self._get_float(self.ui.input_area_income),
-            self._get_float(self.ui.input_house_age),
-            self._get_float(self.ui.input_num_rooms),
-            self._get_float(self.ui.input_num_bedrooms),
-            self._get_float(self.ui.input_population),
-        ]
-        if any(v is None for v in vals):
-            self._error("Please enter all 5 numeric values.")
-            return
+        # bỏ kiểm tra theo thứ tự cố định, dùng theo tên đặc trưng của model
 
-        feature_names = getattr(self, "feature_names", [])
-        if not feature_names or len(feature_names) != 5:
-            feature_names = [
+        req_names = list(getattr(self.model_default, "feature_names_in_", []))
+        if not req_names:
+            req_names = getattr(self, "feature_names", [])
+        if not req_names or len(req_names) != 5:
+            req_names = [
                 "Avg Area Income",
                 "Avg Area House Age",
                 "Avg Area Number of Rooms",
                 "Avg Area Number of Bedrooms",
                 "Area Population",
             ]
-        # Dùng giá trị thô giống cách tính ở ROLE ADMIN (LightGBM)
-        X_input = pd.DataFrame([vals], columns=feature_names)
+        mapping = {
+            "Avg Area Income": self.ui.input_area_income,
+            "Avg Area House Age": self.ui.input_house_age,
+            "Avg Area Number of Rooms": self.ui.input_num_rooms,
+            "Avg Area Number of Bedrooms": self.ui.input_num_bedrooms,
+            "Area Population": self.ui.input_population,
+        }
+        vals_by_name = []
+        if all(n in mapping for n in req_names):
+            for n in req_names:
+                vals_by_name.append(self._get_float(mapping[n]))
+        else:
+            ordered_fields = [
+                self.ui.input_area_income,
+                self.ui.input_house_age,
+                self.ui.input_num_rooms,
+                self.ui.input_num_bedrooms,
+                self.ui.input_population,
+            ]
+            for i in range(5):
+                w = ordered_fields[i] if i < len(ordered_fields) else None
+                vals_by_name.append(self._get_float(w) if w is not None else None)
+        if any(v is None for v in vals_by_name):
+            self._error("Please enter all 5 numeric values.")
+            return
+        X_input = pd.DataFrame([vals_by_name], columns=req_names)
         try:
             pred = float(self.model_default.predict(X_input)[0])
         except Exception as e:
@@ -106,13 +123,7 @@ class PredictionLogicMixin:
             self.ui.lbl_prediction_result.setText(f"{pred:,.2f}")
 
         self.save_to_history(
-            input_data=dict(
-                AvgAreaIncome=vals[0],
-                AvgAreaHouseAge=vals[1],
-                AvgAreaNumRooms=vals[2],
-                AvgAreaNumBedrooms=vals[3],
-                AreaPopulation=vals[4],
-            ),
+            input_data={req_names[i]: vals_by_name[i] for i in range(len(req_names))},
             result=pred,
             model_name=self._get_model_default_name(),
         )
@@ -143,15 +154,39 @@ class PredictionLogicMixin:
     def _ensure_model_for_customer(self) -> bool:
         if getattr(self, "model_default", None) is not None:
             return True
-        # Ưu tiên huấn luyện LightGBM trên dữ liệu thật giống ROLE ADMIN
+        try:
+            import os
+            from NhaCuaToi_HousePricePrediction.FileUtils import FileUtils
+            pkl_candidates = [
+                os.path.join(os.path.dirname(__file__), "data", "SaveModelTest1.pkl"),
+                os.path.join(os.path.dirname(__file__), "data", "SaveModelTest2.pkl"),
+            ]
+            for pkl_path in pkl_candidates:
+                if os.path.isfile(pkl_path):
+                    m = FileUtils.loadmodel(pkl_path)
+                    if m is not None:
+                        self.model_default = m
+                        if not getattr(self, "feature_names", None) or len(self.feature_names) != 5:
+                            self.feature_names = [
+                                "Avg Area Income",
+                                "Avg Area House Age",
+                                "Avg Area Number of Rooms",
+                                "Avg Area Number of Bedrooms",
+                                "Area Population",
+                            ]
+                        if not hasattr(self, "models_cache"):
+                            self.models_cache = {}
+                        name = getattr(m, "__class__", type(m)).__name__
+                        self.models_cache[name] = m
+                        return True
+        except Exception:
+            pass
         try:
             import os
             csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
             if not os.path.isfile(csv_path):
-                # fallback: thử đường dẫn khác nếu cần
                 csv_path = os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv")
             df = pd.read_csv(csv_path)
-
             preferred_feats = [
                 "Avg Area Income",
                 "Avg Area House Age",
@@ -160,17 +195,14 @@ class PredictionLogicMixin:
                 "Area Population",
             ]
             preferred_target = "Price"
-
             def normalize(s: str) -> str:
                 return "".join(ch for ch in str(s).lower() if ch.isalnum())
             norm_cols = {normalize(c): c for c in df.columns}
             def find_col(name: str):
                 return norm_cols.get(normalize(name))
-
             feats = [find_col(n) for n in preferred_feats]
             feats = [c for c in feats if c is not None]
             target = find_col(preferred_target)
-
             if len(feats) == 5 and target:
                 X_all = df[feats].select_dtypes(include=[np.number])
                 y_all = df[target].astype(float)
@@ -182,9 +214,7 @@ class PredictionLogicMixin:
                 feats = num_cols[:-1][:5]
                 X_all = df[feats]
                 y_all = df[target].astype(float)
-
             X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, random_state=42)
-
             if LGBMRegressor is not None:
                 m = LGBMRegressor(random_state=42)
                 model_name = "LightGBM"
@@ -192,7 +222,6 @@ class PredictionLogicMixin:
                 m = LinearRegression()
                 model_name = "LinearRegression"
             m.fit(X_train, y_train)
-
             self.model_default = m
             self.feature_names = feats
             if not hasattr(self, "models_cache"):
@@ -200,7 +229,6 @@ class PredictionLogicMixin:
             self.models_cache[model_name] = m
             return True
         except Exception:
-            # Fallback: mô hình synthetic nếu không đọc được dữ liệu
             try:
                 names = [
                     "Avg Area Income",
@@ -282,6 +310,11 @@ class PredictionLogicMixin:
             QMainWindow, QWidget#centralwidget {{
                 background: {palette['bg']};
             }}
+            QWidget#widget_topbar {{
+                background: {palette['accent_bar']};
+                border: none;
+                border-radius: 8px;
+            }}
             QTabWidget::pane {{
                 border: 1px solid {palette['border']};
                 background: {palette['pane']};
@@ -289,6 +322,10 @@ class PredictionLogicMixin:
             }}
             QLabel {{
                 color: {palette['text']};
+            }}
+            QLabel#lbl_header_title {{
+                font-weight: 800;
+                font-size: 18px;
             }}
             QWidget#widget_house_inline_container QCheckBox {{
                 color: {'#000000' if mode=='dark' else palette['text']};

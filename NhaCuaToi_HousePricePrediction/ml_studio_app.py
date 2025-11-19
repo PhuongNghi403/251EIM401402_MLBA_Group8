@@ -242,6 +242,11 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             QMainWindow, QWidget#centralwidget {{
                 background: {palette['bg']};
             }}
+            QWidget#widget_topbar {{
+                background: {palette['accent_bar']};
+                border: none;
+                border-radius: 8px;
+            }}
             QTabWidget::pane {{
                 border: 1px solid {palette['border']};
                 background: {palette['pane']};
@@ -249,6 +254,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             }}
             QLabel {{
                 color: {palette['text']};
+            }}
+            QLabel#lbl_header_title {{
+                font-weight: 800;
+                font-size: 18px;
             }}
             QTabBar::tab {{
                 background: {palette['btn']};

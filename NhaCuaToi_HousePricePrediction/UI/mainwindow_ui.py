@@ -17,17 +17,26 @@ class Ui_MainWindow(object):
         self.verticalLayout_central.setContentsMargins(8, 8, 8, 8)
         self.verticalLayout_central.setObjectName("verticalLayout_central")
 
-        # THÊM: HBox ở trên cùng, chứa nút Toggle Theme
-        self.hbox_theme_toggle = QtWidgets.QHBoxLayout()
+        # Topbar widget với tiêu đề giữa và nút Toggle Theme
+        self.widget_topbar = QtWidgets.QWidget(parent=self.centralwidget)
+        self.widget_topbar.setObjectName("widget_topbar")
+        self.hbox_theme_toggle = QtWidgets.QHBoxLayout(self.widget_topbar)
         self.hbox_theme_toggle.setObjectName("hbox_theme_toggle")
-        self.hbox_theme_toggle.addItem(
-            QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        )
-        self.btn_toggle_theme = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.hbox_theme_toggle.setContentsMargins(12, 8, 12, 8)
+        left_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.hbox_theme_toggle.addItem(left_spacer)
+        self.lbl_header_title = QtWidgets.QLabel(parent=self.widget_topbar)
+        self.lbl_header_title.setObjectName("lbl_header_title")
+        self.lbl_header_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.lbl_header_title.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Preferred))
+        self.hbox_theme_toggle.addWidget(self.lbl_header_title)
+        right_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.hbox_theme_toggle.addItem(right_spacer)
+        self.btn_toggle_theme = QtWidgets.QPushButton(parent=self.widget_topbar)
         self.btn_toggle_theme.setObjectName("btn_toggle_theme")
         self.btn_toggle_theme.setText("Toggle Theme")
         self.hbox_theme_toggle.addWidget(self.btn_toggle_theme)
-        self.verticalLayout_central.addLayout(self.hbox_theme_toggle)
+        self.verticalLayout_central.addWidget(self.widget_topbar)
 
         # QTabWidget như cũ
         self.tabWidget = QtWidgets.QTabWidget(parent=self.centralwidget)
@@ -491,6 +500,8 @@ class Ui_MainWindow(object):
         self.vbox_metrics.setStretch(0, 1)
         self.vbox_metrics.setStretch(1, 0)
 
+        self.retranslateUi(MainWindow)
+
     def retranslateUi(self, MainWindow):
-        # Provided above; kept minimal since texts are already set
-        pass
+        _translate = QtCore.QCoreApplication.translate
+        self.lbl_header_title.setText(_translate("MainWindow", "HOUSE PRICE PREDICTION - ADMIN"))

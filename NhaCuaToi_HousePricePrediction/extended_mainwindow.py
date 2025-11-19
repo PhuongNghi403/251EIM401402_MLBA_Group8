@@ -471,21 +471,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def slot_predict(self):
         if self.model_default is None:
             self._ensure_model_for_customer()
-        req_names = list(getattr(self.model_default, "feature_names_in_", [])) if self.model_default is not None else []
+        req_names = list(getattr(self.current_model_obj, "feature_names_in_", []))
         if not req_names:
-            req_names = ["Area", "Bathrooms", "Bedrooms", "Floors", "Frontage"]
-        name_to_widget = {
-            "Area": self.ui.input_area_income,
-            "Bathrooms": self.ui.input_house_age,
-            "Bedrooms": self.ui.input_num_bedrooms,
-            "Floors": self.ui.input_num_rooms,
-            "Frontage": self.ui.input_population,
+            req_names = [
+                "Avg Area Income",
+                "Avg Area House Age",
+                "Avg Area Number of Rooms",
+                "Avg Area Number of Bedrooms",
+                "Area Population",
+            ]
+        mapping = {
+            "Avg Area Income": self.ui.input_area_income,
+            "Avg Area House Age": self.ui.input_house_age,
+            "Avg Area Number of Rooms": self.ui.input_num_rooms,
+            "Avg Area Number of Bedrooms": self.ui.input_num_bedrooms,
+            "Area Population": self.ui.input_population,
         }
         vals = []
-        for n in req_names:
-            w = name_to_widget.get(n)
-            v = self._get_float(w) if w is not None else None
-            vals.append(v)
+        if all(n in mapping for n in req_names):
+            for n in req_names:
+                vals.append(self._get_float(mapping[n]))
+        else:
+            ordered_fields = [
+                self.ui.input_area_income,
+                self.ui.input_house_age,
+                self.ui.input_num_rooms,
+                self.ui.input_num_bedrooms,
+                self.ui.input_population,
+            ]
+            for i, n in enumerate(req_names):
+                w = ordered_fields[i] if i < len(ordered_fields) else None
+                v = self._get_float(w) if w is not None else None
+                vals.append(v)
         if any(v is None for v in vals):
             self._error("Vui lòng nhập đủ 5 giá trị số.")
             return
