@@ -24,7 +24,7 @@ class PredictionLogicMixin:
             self.canvas_history, self.ax_history = self._init_canvas_in(self.ui.chart_view_history)
 
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:
-        figure = Figure(figsize=(5, 3), tight_layout=True)
+        figure = Figure(figsize=(6, 4), constrained_layout=True)
         canvas = FigureCanvas(figure)
         ax = figure.add_subplot(111)
 
@@ -35,10 +35,16 @@ class PredictionLogicMixin:
             figure.set_facecolor("#f8e1f4")
             ax.set_facecolor("#ffffff")
 
+        host_widget.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                                        QtWidgets.QSizePolicy.Policy.Expanding))
+        host_widget.setMinimumSize(500, 320)
+        canvas.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                                   QtWidgets.QSizePolicy.Policy.Expanding))
+
         layout = host_widget.layout()
         if layout is None:
             layout = QVBoxLayout(host_widget)
-            layout.setContentsMargins(6, 6, 6, 6)
+            layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(canvas)
         return canvas, ax
 
@@ -309,6 +315,10 @@ class PredictionLogicMixin:
         style = f"""
             QMainWindow, QWidget#centralwidget {{
                 background: {palette['bg']};
+            }}
+            /* viewport của ScrollArea theo theme để cuộn không lạc màu */
+            QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {{
+                background: {palette['pane']};
             }}
             QWidget#widget_topbar {{
                 background: {palette['accent_bar']};

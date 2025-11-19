@@ -146,19 +146,47 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         # Signal connections
         self._connect_signals()
 
+        # Tăng tính linh hoạt cho màn hình nhỏ
+        self._enhance_responsiveness()
+
         # Initial draw for history tab (show message when empty)
         try:
             self.refresh_history_tab()
         except Exception:
             pass
 
+    def _enhance_responsiveness(self):
+        from PyQt6 import QtWidgets
+        self.setMinimumSize(800, 600)
+        # Cho TabWidget tự mở rộng và có nút cuộn tab (khi nhiều tab)
+        self.ui.tabWidget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding
+        )
+        self.ui.tabWidget.setUsesScrollButtons(True)
+
+        # Bọc từng tab bằng ScrollArea để nội dung có thể cuộn
+        count = self.ui.tabWidget.count()
+        for i in range(count):
+            w = self.ui.tabWidget.widget(i)
+            # Nếu chưa phải ScrollArea thì bọc lại
+            if not isinstance(w, QtWidgets.QScrollArea):
+                title = self.ui.tabWidget.tabText(i)
+                icon = self.ui.tabWidget.tabIcon(i)
+                scroll = QtWidgets.QScrollArea()
+                scroll.setWidgetResizable(True)
+                scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+                # Tháo tab cũ và lắp lại trong ScrollArea
+                self.ui.tabWidget.removeTab(i)
+                scroll.setWidget(w)
+                self.ui.tabWidget.insertTab(i, scroll, icon, title)
+
     # ---------- UI wiring helpers ----------
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:
-        figure = Figure(figsize=(5, 3), tight_layout=True)
+        figure = Figure(figsize=(6, 4), constrained_layout=True)
         canvas = FigureCanvas(figure)
         ax = figure.add_subplot(111)
 
-        # Apply theme-dependent background
         if getattr(self, "_theme_mode", "light") == "dark":
             figure.set_facecolor("#221733")
             ax.set_facecolor("#2d2046")
@@ -166,10 +194,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             figure.set_facecolor("#f8e1f4")
             ax.set_facecolor("#ffffff")
 
+        host_widget.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                                        QtWidgets.QSizePolicy.Policy.Expanding))
+        host_widget.setMinimumSize(500, 320)
+        canvas.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                                   QtWidgets.QSizePolicy.Policy.Expanding))
+
         layout = host_widget.layout()
         if layout is None:
             layout = QVBoxLayout(host_widget)
-            layout.setContentsMargins(6, 6, 6, 6)
+            layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(canvas)
         return canvas, ax
 

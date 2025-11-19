@@ -7,12 +7,6 @@ class LoginWindow(QWidget, Ui_Login):
         self.ui = Ui_Login()
         self.ui.setupUi(self)
         self.ui.btn_login.clicked.connect(self._on_login)
-        if hasattr(self.ui, "combo_role"):
-            try:
-                self.ui.combo_role.currentTextChanged.connect(self._on_role_changed)
-                self._on_role_changed(self.ui.combo_role.currentText())
-            except Exception:
-                pass
 
     def _on_login(self):
         username = self.ui.txt_username.text().strip()
@@ -31,7 +25,8 @@ class LoginWindow(QWidget, Ui_Login):
                         self._main.apply_role_permissions()
                     except Exception:
                         pass
-                    self._main.show()
+                    # Mở full màn hình để tối ưu hiển thị
+                    self._main.showMaximized()
                     self.close()
                 except Exception as e:
                     QMessageBox.critical(self, "Error", f"Cannot open Admin: {e}")
@@ -42,7 +37,8 @@ class LoginWindow(QWidget, Ui_Login):
                 try:
                     from customer_app import CustomerWindow
                     self._cust = CustomerWindow(username=username)
-                    self._cust.show()
+                    # Mở full màn hình để tối ưu hiển thị
+                    self._cust.showMaximized()
                     self.close()
                 except Exception as e:
                     QMessageBox.critical(self, "Error", f"Cannot open Customer: {e}")

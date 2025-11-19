@@ -103,9 +103,12 @@ class HouseInputForm(QDialog):
         form.setFieldGrowthPolicy(QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
         self.input_floor_area = QLineEdit(self)
-        sp_exp = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
-        self.input_floor_area.setSizePolicy(sp_exp)
-        self.input_floor_area.setMinimumWidth(520)
+        # CHỈNH: không cho nở rộng, đặt chiều rộng đồng nhất
+        sp_fix = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed,
+        QtWidgets.QSizePolicy.Policy.Fixed)
+        self.input_floor_area.setSizePolicy(sp_fix)
+        self.input_floor_area.setMinimumWidth(360)
+        self.input_floor_area.setMaximumWidth(360)
         self.input_floor_area.setMinimumHeight(30)
         self.lbl_err_floor_area = QLabel("", self)
         self.lbl_err_floor_area.setStyleSheet("color: #c0392b;")

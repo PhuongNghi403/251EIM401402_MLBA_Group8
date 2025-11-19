@@ -96,6 +96,9 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         self._apply_theme(getattr(self, "_theme_mode", "dark"))
         self.ui.table_history.setColumnCount(4)
         self.ui.table_history.setHorizontalHeaderLabels(["Time", "Input Summary", "Predicted Price", "Model"])
+
+        # Tăng tính linh hoạt cho giao diện nhỏ
+        self._enhance_responsiveness()
         try:
             self._ensure_model_for_customer()
         except Exception:
@@ -284,24 +287,24 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
                 prices.append(p)
             ax = self.ax_price_trend
             ax.clear()
-            # nền trắng cho biểu đồ
             try:
                 self.canvas_price_trend.figure.set_facecolor("#ffffff")
             except Exception:
                 pass
             ax.set_facecolor("#ffffff")
             ax.plot(years, prices, color="#58D68D")
-            ax.set_xlabel("Year")
-            ax.set_ylabel("Predicted Price")
+            ax.set_title("Price Trend (2015–2035)", pad=8, color="#2b2342")
+            ax.set_xlabel("Year", color="#2b2342")
+            ax.set_ylabel("Predicted Price", color="#2b2342")
             ax.grid(True, linestyle="--", alpha=0.4)
-            # màu chữ tối để đọc tốt trên nền trắng
-            text_color = "#2b2342"
-            ax.tick_params(colors=text_color, axis='x')
-            ax.tick_params(colors=text_color, axis='y')
-            ax.xaxis.label.set_color(text_color)
-            ax.yaxis.label.set_color(text_color)
-            ax.title.set_color(text_color)
+            ax.tick_params(colors="#2b2342", axis='x')
+            ax.tick_params(colors="#2b2342", axis='y')
+            ax.margins(x=0.03, y=0.15)
             ax.scatter([2025], [float(current_price)], color="#2E86C1")
+            try:
+                self.canvas_price_trend.figure.tight_layout()
+            except Exception:
+                pass
             self.canvas_price_trend.draw_idle()
         except Exception:
             pass
@@ -319,7 +322,6 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             s = sum(v for v in vals if v >= 0)
             if s <= 0:
                 return
-            # phân bổ phần trăm với ngưỡng tối thiểu để không mục nào là 0%
             min_pct = 3.0
             n = len(vals)
             base = min_pct * n
@@ -327,6 +329,7 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             weights = [max(0.0, v) / s for v in vals]
             sum_w = sum(weights) or 1.0
             perc = [min_pct + remaining * (w / sum_w) for w in weights]
+
             ax = self.ax_price_breakdown
             ax.clear()
             try:
@@ -334,12 +337,19 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             except Exception:
                 pass
             ax.set_facecolor("#ffffff")
-            ax.bar(labels, perc, color=["#7FB3D5", "#76D7C4", "#F7DC6F", "#F1948A"]) 
-            ax.set_ylabel("% of price drivers")
-            ax.set_title("Price Breakdown by Features")
+            ax.bar(labels, perc, color=["#7FB3D5", "#76D7C4", "#F7DC6F", "#F1948A"])
+            ax.set_ylabel("% of price drivers", color="#2b2342")
+            ax.set_title("Price Breakdown by Features", pad=8, color="#2b2342")
             ax.grid(True, axis="y", linestyle="--", alpha=0.4)
+            ax.set_ylim(0, 105)
+            ax.margins(x=0.03, y=0.10)
             for i, p in enumerate(perc):
-                ax.text(i, p + 1.0, f"{p:,.0f}%", ha="center", va="bottom", color="#2b2342")
+                ax.text(i, min(p + 2.0, 102.0), f"{p:,.0f}%", ha="center", va="bottom", color="#2b2342")
+
+            try:
+                self.canvas_price_breakdown.figure.tight_layout()
+            except Exception:
+                pass
             self.canvas_price_breakdown.draw_idle()
         except Exception:
             pass
@@ -801,3 +811,56 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         if type_col:
             data[type_col] = types
         return pd.DataFrame(data)
+
+    def _enhance_responsiveness(self):
+        from PyQt6 import QtWidgets
+        self.setMinimumSize(800, 600)
+        self.ui.tabWidget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding
+        )
+        self.ui.tabWidget.setUsesScrollButtons(True)
+
+        # Bọc TẤT CẢ 5 tab bằng ScrollArea (idempotent)
+        count = self.ui.tabWidget.count()
+        for i in range(count):
+            w = self.ui.tabWidget.widget(i)
+            if not isinstance(w, QtWidgets.QScrollArea):
+                title = self.ui.tabWidget.tabText(i)
+                scroll = QtWidgets.QScrollArea()
+                scroll.setWidgetResizable(True)
+                scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+                self.ui.tabWidget.removeTab(i)
+                scroll.setWidget(w)
+                self.ui.tabWidget.insertTab(i, scroll, title)
+
+        # Khu vực chart nở đều, có kích thước tối thiểu để không bị dẹp
+        try:
+            sp_expand = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                              QtWidgets.QSizePolicy.Policy.Expanding)
+            self.ui.group_price_chart.setSizePolicy(sp_expand)
+            self.ui.chart_view_price_trend.setSizePolicy(sp_expand)
+            self.ui.chart_view_price_breakdown.setSizePolicy(sp_expand)
+            self.ui.chart_view_price_trend.setMinimumSize(600, 320)
+            self.ui.chart_view_price_breakdown.setMinimumSize(600, 320)
+        except Exception:
+            pass
+
+        self._apply_responsive_flow()
+
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        super().resizeEvent(event)
+        # Điều chỉnh layout chart ngang/dọc theo độ rộng cửa sổ
+        self._apply_responsive_flow()
+
+    def _apply_responsive_flow(self):
+        from PyQt6 import QtWidgets
+        try:
+            if self.width() < 1280:
+                # hẹp: xếp dọc để cuộn dọc, tránh hẹp chart
+                self.ui.hbox_price_charts.setDirection(QtWidgets.QBoxLayout.Direction.TopToBottom)
+            else:
+                # rộng: xếp ngang
+                self.ui.hbox_price_charts.setDirection(QtWidgets.QBoxLayout.Direction.LeftToRight)
+        except Exception:
+            pass

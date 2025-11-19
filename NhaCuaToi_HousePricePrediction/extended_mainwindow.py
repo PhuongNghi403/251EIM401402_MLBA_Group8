@@ -106,7 +106,7 @@ class LoginDialog(QDialog):
         return self.role_combo.currentText().strip() or "customer"
 
 
-class MainWindow(QMainWindow, Ui_MainWindow):
+class ExtendedMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_MainWindow()
@@ -138,13 +138,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._show_login_and_apply_role()
 
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:
-        figure = Figure(figsize=(5, 3), tight_layout=True)
+        figure = Figure(figsize=(6, 4), constrained_layout=True)
         canvas = FigureCanvas(figure)
         ax = figure.add_subplot(111)
+        host_widget.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                                        QtWidgets.QSizePolicy.Policy.Expanding))
+        host_widget.setMinimumSize(500, 320)
+        canvas.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                                   QtWidgets.QSizePolicy.Policy.Expanding))
         layout = host_widget.layout()
         if layout is None:
             layout = QVBoxLayout(host_widget)
-            layout.setContentsMargins(6, 6, 6, 6)
+            layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(canvas)
         return canvas, ax
 
