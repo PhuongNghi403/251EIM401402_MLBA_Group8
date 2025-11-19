@@ -98,10 +98,6 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             self._ensure_model_for_customer()
         except Exception:
             pass
-        try:
-            self._vn_shapes = None
-        except Exception:
-            self._vn_shapes = None
 
     def _error(self, msg: str):
         QMessageBox.critical(self, "Error", msg)
@@ -365,31 +361,27 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             ax.text(0.5, 0.5, "Không tìm thấy toạ độ cho các tỉnh thành", ha="center", va="center", color=text_color)
             self.canvas_city_map.draw_idle()
             return
-        ax.set_xlim(102, 116)
+        ax.set_xlim(102, 110)
         ax.set_ylim(8, 23)
         ax.grid(True, linestyle="--", alpha=0.3)
         try:
             from matplotlib.patches import Polygon
+            coast_path = [
+                (107.97, 21.50), (106.68, 20.85), (105.80, 19.80), (105.70, 18.70),
+                (106.60, 17.50), (107.60, 16.47), (108.20, 16.05), (109.22, 13.78),
+                (109.20, 12.25), (108.10, 10.93), (107.13, 10.41), (104.49, 10.38),
+                (105.15, 9.18)
+            ]
+            west_border = [
+                (105.10, 10.70), (105.30, 11.50), (105.70, 12.50), (105.90, 13.50),
+                (106.00, 14.50), (105.80, 15.50), (105.70, 16.50), (105.50, 17.50),
+                (105.40, 18.50), (105.30, 19.50), (104.00, 21.20), (103.00, 21.40),
+                (103.96, 22.50), (106.75, 21.85), (107.97, 21.50)
+            ]
+            poly_pts = coast_path + west_border
             land_color = "#e6f2ff" if getattr(self, "_theme_mode", "light") != "dark" else "#2a2550"
             edge_color = "#93c0ff" if getattr(self, "_theme_mode", "light") != "dark" else "#cbbef5"
-            shapes = self._vn_shapes or self._load_vietnam_shapes()
-            if shapes and shapes.get("mainland"):
-                ax.add_patch(Polygon(shapes["mainland"], closed=True, facecolor=land_color, edgecolor=edge_color, linewidth=1.0, alpha=0.6))
-            else:
-                fallback = [
-                    (109.5, 21.5), (108.9, 20.8), (108.0, 19.5), (107.2, 18.3),
-                    (106.5, 17.1), (107.8, 16.1), (108.6, 15.0), (109.2, 13.8),
-                    (109.1, 12.7), (108.6, 11.4), (107.9, 10.8), (107.0, 10.5),
-                    (106.3, 10.1), (105.5, 9.8), (104.9, 10.1), (104.6, 10.6),
-                    (104.8, 11.4), (105.0, 12.2), (105.2, 13.2), (105.6, 14.8),
-                    (105.6, 16.0), (105.1, 17.5), (104.7, 19.0), (104.2, 20.3),
-                    (105.3, 21.4), (106.6, 21.7), (108.0, 21.9), (109.0, 21.7)
-                ]
-                ax.add_patch(Polygon(fallback, closed=True, facecolor=land_color, edgecolor=edge_color, linewidth=1.0, alpha=0.6))
-            for poly in shapes.get("paracel", []):
-                ax.add_patch(Polygon(poly, closed=True, facecolor=land_color, edgecolor=edge_color, linewidth=0.8, alpha=0.7))
-            for poly in shapes.get("spratly", []):
-                ax.add_patch(Polygon(poly, closed=True, facecolor=land_color, edgecolor=edge_color, linewidth=0.8, alpha=0.7))
+            ax.add_patch(Polygon(poly_pts, closed=True, facecolor=land_color, edgecolor=edge_color, linewidth=1.0, alpha=0.6))
         except Exception:
             pass
         sc = ax.scatter(xs, ys, c=vals, cmap="Blues", s=220, edgecolors='k', linewidths=0.5)
@@ -465,64 +457,3 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         else:
             self.annot.set_visible(False)
         self.canvas_city_map.draw_idle()
-
-    def _load_vietnam_shapes(self):
-        try:
-            base = os.path.dirname(__file__)
-            docx_path = os.path.join(base, "vietnam.docx")
-            if not os.path.isfile(docx_path):
-                docx_path = os.path.join(os.path.dirname(base), "NhaCuaToi_HousePricePrediction", "vietnam.docx")
-            import zipfile, re
-            if not os.path.isfile(docx_path):
-                self._vn_shapes = {"mainland": None, "paracel": [], "spratly": []}
-                return self._vn_shapes
-            with zipfile.ZipFile(docx_path) as z:
-                data = z.read("word/document.xml").decode("utf-8", errors="ignore")
-            texts = re.findall(r"<w:t[^>]*>(.*?)</w:t>", data, flags=re.S)
-            plain = " ".join(t.strip() for t in texts if t.strip())
-            norm = self._normalize(plain)
-            nums = re.findall(r"-?\d+(?:\.\d+)?", plain)
-            vals = [float(x) for x in nums]
-            pairs = []
-            i = 0
-            while i + 1 < len(vals):
-                a = vals[i]
-                b = vals[i + 1]
-                if 7.0 <= min(a, b) <= 25.0 and 100.0 <= max(a, b) <= 120.0:
-                    if a < b:
-                        lat = a
-                        lon = b
-                    else:
-                        lat = b
-                        lon = a
-                    pairs.append((lon, lat))
-                i += 2
-            mainland = [p for p in pairs if 102.0 <= p[0] <= 110.5 and 8.0 <= p[1] <= 23.5]
-            paracel = [p for p in pairs if 111.0 <= p[0] <= 114.5 and 15.0 <= p[1] <= 17.5]
-            spratly = [p for p in pairs if 111.0 <= p[0] <= 117.5 and 7.5 <= p[1] <= 13.5]
-            def chain_to_polys(seq, gap=0.8):
-                polys = []
-                cur = []
-                prev = None
-                for p in seq:
-                    if prev is None:
-                        cur.append(p)
-                    else:
-                        d = abs(p[0] - prev[0]) + abs(p[1] - prev[1])
-                        if d > gap and len(cur) >= 3:
-                            polys.append(cur)
-                            cur = [p]
-                        else:
-                            cur.append(p)
-                    prev = p
-                if len(cur) >= 3:
-                    polys.append(cur)
-                return polys
-            mainland_poly = mainland if len(mainland) >= 3 else None
-            paracel_polys = chain_to_polys(paracel)
-            spratly_polys = chain_to_polys(spratly)
-            self._vn_shapes = {"mainland": mainland_poly, "paracel": paracel_polys, "spratly": spratly_polys}
-            return self._vn_shapes
-        except Exception:
-            self._vn_shapes = {"mainland": None, "paracel": [], "spratly": []}
-            return self._vn_shapes
