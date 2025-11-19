@@ -60,11 +60,42 @@ class LoginDialog(QDialog):
         layout.addWidget(self.username_edit)
         layout.addWidget(QLabel("Mật khẩu"))
         layout.addWidget(self.password_edit)
-        layout.addWidget(QLabel("Vai trò"))
+        layout.addWidget(QLabel("Role"))
         layout.addWidget(self.role_combo)
         layout.addWidget(self.buttons)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
+        self.setStyleSheet(
+            """
+            QWidget {
+                background: #ffffff;
+                color: #2b2342;
+                font-size: 14px;
+            }
+            QLineEdit, QComboBox {
+                background: #ffffff;
+                color: #2b2342;
+                border: 1px solid #d6b6f5;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border: 2px solid #d491d3;
+            }
+            QPushButton {
+                background: #4c0c24;
+                color: #f8e1f4;
+                border: 1px solid #4c0c24;
+                border-radius: 6px;
+                padding: 8px 12px;
+            }
+            QPushButton:hover {
+                background: #f8e1f4;
+                color: #4c0c24;
+                border: 1px solid #4c0c24;
+            }
+            """
+        )
 
     @property
     def username(self) -> str:
@@ -102,6 +133,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connect_signals()
 
         self.ui.lbl_status_tab1.setText("Sẵn sàng.")
+        if hasattr(self.ui, "lbl_header_title"):
+            self.ui.lbl_header_title.setText("HOUSE PRICE PREDICTION SYSTEM")
         self._show_login_and_apply_role()
 
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:

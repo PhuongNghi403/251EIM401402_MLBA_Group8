@@ -42,7 +42,7 @@
      <item>
       <widget class="QLabel" name="lbl_role">
        <property name="text">
-        <string>Vai trò</string>
+        <string>Role</string>
        </property>
       </widget>
      </item>

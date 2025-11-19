@@ -131,7 +131,7 @@ class Ui_CustomerHome(object):
     def retranslateUi(self, CustomerHome):
         _translate = QtCore.QCoreApplication.translate
         CustomerHome.setWindowTitle(_translate("CustomerHome", "Customer - ML Price Predictor"))
-        self.lbl_header_title.setText(_translate("CustomerHome", "HOUSE PRICE PREDICTION - CUSTOMER"))
+        self.lbl_header_title.setText(_translate("CustomerHome", "HOUSE PRICE PREDICTION SYSTEM"))
         self.btn_toggle_theme.setText(_translate("CustomerHome", "Toggle Theme"))
         self.btn_logout.setText(_translate("CustomerHome", "Logout"))
         # Đã bỏ khung Input Features và Results & Actions

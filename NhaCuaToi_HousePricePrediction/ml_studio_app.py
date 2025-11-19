@@ -107,6 +107,8 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         # Clear default status text from UI design
         if hasattr(self.ui, "lbl_status_tab1"):
             self.ui.lbl_status_tab1.setText("")
+        if hasattr(self.ui, "lbl_header_title"):
+            self.ui.lbl_header_title.setText("HOUSE PRICE PREDICTION SYSTEM")
 
         # Core state
         self.df: Optional[pd.DataFrame] = None
