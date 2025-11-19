@@ -35,8 +35,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
+try:
+    from xgboost import XGBRegressor
+except Exception:
+    XGBRegressor = None
+try:
+    from lightgbm import LGBMRegressor
+except Exception:
+    LGBMRegressor = None
 
 
 class LoginDialog(QDialog):
@@ -319,8 +325,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif model_name == "GradientBoosting":
             model = GradientBoostingRegressor(random_state=42)
         elif model_name == "XGBoost":
+            if XGBRegressor is None:
+                self._error("XGBoost chưa được cài đặt.")
+                return None, {}, pd.DataFrame()
             model = XGBRegressor(random_state=42)
         elif model_name == "LightGBM":
+            if LGBMRegressor is None:
+                self._error("LightGBM chưa được cài đặt.")
+                return None, {}, pd.DataFrame()
             model = LGBMRegressor(random_state=42)
         else:
             self._error(f"Model không hỗ trợ: {model_name}")
@@ -389,7 +401,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ui.table_model_comparison.setRowCount(0)
         self.ui.combo_set_default_model.clear()
         self.ui.txt_model_metrics.setPlainText("Đang huấn luyện và đánh giá các model...")
-        model_list = ["LinearRegression", "RandomForest", "GradientBoosting", "XGBoost", "LightGBM"]
+        model_list = ["LinearRegression", "RandomForest", "GradientBoosting"]
+        if XGBRegressor is not None:
+            model_list.append("XGBoost")
+        if LGBMRegressor is not None:
+            model_list.append("LightGBM")
         results_for_plot: List[Tuple[str, float]] = []
         train_rate = int(self.ui.spin_train_rate.value())
         for name in model_list:

@@ -39,8 +39,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
+try:
+    from xgboost import XGBRegressor  # optional
+    HAS_XGB = True
+except Exception:
+    XGBRegressor = None
+    HAS_XGB = False
+try:
+    from lightgbm import LGBMRegressor  # optional
+    HAS_LGBM = True
+except Exception:
+    LGBMRegressor = None
+    HAS_LGBM = False
 
 from SharedLogic import PredictionLogicMixin
 
@@ -119,6 +129,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         # Matplotlib canvases
         self.canvas_compare, self.ax_compare = self._init_canvas_in(self.ui.chart_view_compare)
         self.canvas_history, self.ax_history = self._init_canvas_in(self.ui.chart_view_history)
+        # Inline analysis canvases for selected model
+        self.canvas_actual, self.ax_actual = self._init_canvas_in(self.ui.chart_view_actual_pred)
+        self.canvas_resid, self.ax_resid = self._init_canvas_in(self.ui.chart_view_residuals_compare)
+        self.canvas_importance, self.ax_importance = self._init_canvas_in(self.ui.chart_view_feature_importance)
         self.compare_results_store: List[Tuple[str, float]] = []
         self.selected_compare_model: Optional[str] = None
 
@@ -129,6 +143,12 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
         # Signal connections
         self._connect_signals()
+
+        # Initial draw for history tab (show message when empty)
+        try:
+            self.refresh_history_tab()
+        except Exception:
+            pass
 
     # ---------- UI wiring helpers ----------
     def _init_canvas_in(self, host_widget: QtWidgets.QWidget) -> Tuple[FigureCanvas, object]:
@@ -184,6 +204,8 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ui.table_model_comparison.cellDoubleClicked.connect(self.slot_compare_row_double_clicked)
         if hasattr(self.ui, "btn_open_city_price_map"):
             self.ui.btn_open_city_price_map.clicked.connect(self.slot_open_city_price_map)
+        if hasattr(self.ui, "tabWidget"):
+            self.ui.tabWidget.currentChanged.connect(self._on_tab_changed)
 
     # --- Theme & Icons ---
     def _apply_theme(self, mode: str):
@@ -192,7 +214,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                 "bg": "#1c1330",
                 "pane": "#221733",
                 "panel": "#2d2046",
-                "text": "#ece7ff",
+                "text": "#FFFFFF",
                 "muted": "#cbbef5",
                 "border": "#5b4f85",
                 "btn": "#3a2c5e",
@@ -200,7 +222,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                 "accent_bar": "#b68cff",
                 "accent_line": "#93c0ff",
             }
-            text_color = "#DDDDDD"
+            text_color = "#FFFFFF"
         else:
             palette = {
                 "bg": "#f8e1f4",
@@ -224,6 +246,9 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                 border: 1px solid {palette['border']};
                 background: {palette['pane']};
                 border-radius: 6px;
+            }}
+            QLabel {{
+                color: {palette['text']};
             }}
             QTabBar::tab {{
                 background: {palette['btn']};
@@ -275,6 +300,11 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                 color: {palette['accent_line']};
                 font-weight: 600;
             }}
+            QTextEdit, QPlainTextEdit {{
+                color: {palette['text']};
+                background: {'#2d2046' if mode=='dark' else '#ffffff'};
+                border: 1px solid {palette['border']};
+            }}
             QSpinBox, QLineEdit, QComboBox {{
                 background: {'#3a2c5e' if mode=='dark' else '#ffffff'};
                 color: {palette['text']};
@@ -307,8 +337,24 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ax_history.yaxis.label.set_color(text_color)
         self.ax_history.title.set_color(text_color)
 
-        self.canvas_compare.draw_idle()
-        self.canvas_history.draw_idle()
+        for canv, ax in [
+            (self.canvas_compare, self.ax_compare),
+            (self.canvas_history, self.ax_history),
+            (self.canvas_actual, self.ax_actual),
+            (self.canvas_resid, self.ax_resid),
+            (self.canvas_importance, self.ax_importance),
+        ]:
+            canv.figure.set_facecolor(fig_bg_color)
+            ax.set_facecolor(ax_bg_color)
+            ax.tick_params(colors=text_color, axis='x', labelsize=8)
+            ax.tick_params(colors=text_color, axis='y', labelsize=8)
+            ax.xaxis.label.set_color(text_color)
+            ax.yaxis.label.set_color(text_color)
+            ax.xaxis.label.set_fontsize(10)
+            ax.yaxis.label.set_fontsize(10)
+            ax.title.set_color(text_color)
+            ax.title.set_fontsize(12)
+            canv.draw_idle()
 
     def _load_icon(self, name: str, fallback: QtWidgets.QStyle.StandardPixmap):
         icon_path = os.path.join(os.path.dirname(__file__), "UI", "icons", name)
@@ -476,8 +522,14 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         elif model_name == "GradientBoosting":
             model = GradientBoostingRegressor(random_state=42)
         elif model_name == "XGBoost":
+            if XGBRegressor is None:
+                self._error("XGBoost is not installed.")
+                return None, {}, pd.DataFrame()
             model = XGBRegressor(random_state=42)
         elif model_name == "LightGBM":
+            if LGBMRegressor is None:
+                self._error("LightGBM is not installed.")
+                return None, {}, pd.DataFrame()
             model = LGBMRegressor(random_state=42)
         else:
             self._error(f"Unsupported model: {model_name}")
@@ -544,7 +596,11 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ui.table_model_comparison.setColumnCount(4)
         self.ui.table_model_comparison.setHorizontalHeaderLabels(["Model", "MAE", "RMSE", "R²"])
 
-        model_list = ["LinearRegression", "RandomForest", "GradientBoosting", "XGBoost", "LightGBM"]
+        model_list = ["LinearRegression", "RandomForest", "GradientBoosting"]
+        if XGBRegressor is not None:
+            model_list.append("XGBoost")
+        if LGBMRegressor is not None:
+            model_list.append("LightGBM")
         results_for_plot: List[Tuple[str, float]] = []
 
         train_rate = int(self.ui.spin_train_rate.value())
@@ -571,7 +627,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
     def plot_comparison_chart(self, results: List[Tuple[str, float]], selected_name: Optional[str] = None):
         self.ax_compare.clear()
-        text_color = "#DDDDDD" if self._theme_mode == "dark" else "#2b2342"
+        text_color = "#FFFFFF" if self._theme_mode == "dark" else "#2b2342"
         if not results:
             self.ax_compare.text(0.5, 0.5, "No data to plot", ha="center", va="center", color=text_color)
         else:
@@ -581,13 +637,15 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             colors = [("#FFC107" if selected_name and n == selected_name else self.compare_bar_color) for n in names]
             self.ax_compare.bar(x, rmses, color=colors)
             self.ax_compare.set_xticks(x)
-            self.ax_compare.set_xticklabels(names, rotation=0, color=text_color)
-            self.ax_compare.set_ylabel("RMSE")
+            self.ax_compare.set_xticklabels(names, rotation=20, ha='right', fontsize=8, color=text_color)
+            self.ax_compare.set_ylabel("RMSE", fontsize=10)
             title = "RMSE comparison across models"
             if selected_name:
                 title += f" (Selected: {selected_name})"
-            self.ax_compare.set_title(title)
+            self.ax_compare.set_title(title, fontsize=10)
             self.ax_compare.grid(axis="y", linestyle="--", alpha=0.4)
+            self.ax_compare.tick_params(axis='y', labelsize=8)
+            self.ax_compare.margins(x=0.05)
         self.canvas_compare.draw_idle()
 
     def slot_compare_row_selected(self):
@@ -615,17 +673,63 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         model_obj = self.models_cache.get(name)
         if not cached or model_obj is None:
             return
-        dlg = ModelDetailsDialog(
-            self,
-            name,
-            model_obj,
-            cached.get("results_df"),
-            cached.get("feature_names", []),
-            getattr(self, "_theme_mode", "light"),
-            self.compare_bar_color,
-            self.history_line_color,
-        )
-        dlg.exec()
+        self._draw_model_details_inline(name, model_obj, cached.get("results_df"), cached.get("feature_names", []))
+        self.selected_compare_model = name
+        self.plot_comparison_chart(self.compare_results_store, selected_name=name)
+
+    def _draw_model_details_inline(self, model_name: str, model_obj: object, results_df: pd.DataFrame, feature_names: List[str]):
+        if not isinstance(results_df, pd.DataFrame) or results_df.empty:
+            return
+        y_true = results_df.iloc[:, 1].astype(float).values
+        y_pred = results_df.iloc[:, 2].astype(float).values
+        bar_color = self.compare_bar_color
+        line_color = self.history_line_color
+        self.ax_actual.clear()
+        min_v = float(min(np.min(y_true), np.min(y_pred)))
+        max_v = float(max(np.max(y_true), np.max(y_pred)))
+        self.ax_actual.scatter(y_true, y_pred, color=line_color, s=18)
+        self.ax_actual.plot([min_v, max_v], [min_v, max_v], color=bar_color, linestyle='--')
+        self.ax_actual.set_xlabel("Actual", fontsize=10)
+        self.ax_actual.set_ylabel("Predicted", fontsize=10)
+        self.ax_actual.set_title(f"Actual vs Predicted: {model_name}", fontsize=12)
+        self.ax_actual.tick_params(labelsize=8)
+        self.canvas_actual.draw_idle()
+
+        residuals = y_pred - y_true
+        self.ax_resid.clear()
+        self.ax_resid.hist(residuals, bins=20, color=bar_color, alpha=0.8)
+        self.ax_resid.set_xlabel("Residual", fontsize=10)
+        self.ax_resid.set_ylabel("Count", fontsize=10)
+        self.ax_resid.set_title("Residuals Distribution", fontsize=12)
+        self.ax_resid.tick_params(labelsize=8)
+        self.canvas_resid.draw_idle()
+
+        imp_names = list(feature_names)
+        imp_vals = None
+        if hasattr(model_obj, "feature_importances_"):
+            try:
+                imp_vals = list(np.array(getattr(model_obj, "feature_importances_"), dtype=float))
+            except Exception:
+                imp_vals = None
+        if imp_vals is None and hasattr(model_obj, "coef_"):
+            try:
+                coefs = np.ravel(getattr(model_obj, "coef_"))
+                imp_vals = list(np.abs(coefs))
+            except Exception:
+                imp_vals = None
+        if not imp_names:
+            imp_names = [f"f{i+1}" for i in range(len(imp_vals or []))]
+        if imp_vals is None or len(imp_vals) != len(imp_names):
+            imp_vals = [0.0] * len(imp_names)
+        self.ax_importance.clear()
+        x = np.arange(len(imp_names))
+        self.ax_importance.bar(x, imp_vals, color=bar_color)
+        self.ax_importance.set_xticks(x)
+        self.ax_importance.set_xticklabels(imp_names, rotation=20, ha='right', fontsize=8)
+        self.ax_importance.set_ylabel("Importance", fontsize=10)
+        self.ax_importance.set_title("Feature Importance", fontsize=12)
+        self.ax_importance.tick_params(axis='y', labelsize=8)
+        self.canvas_importance.draw_idle()
 
     def slot_open_city_price_map(self):
         path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_with_20_Random_Cities.csv")
@@ -778,11 +882,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
     def plot_history_trend(self):
         self.ax_history.clear()
-        text_color = "#DDDDDD" if self._theme_mode == "dark" else "#2b2342"
-        if self.history_df.empty:
+        text_color = "#FFFFFF" if self._theme_mode == "dark" else "#2b2342"
+        df = self.get_visible_history_df()
+        if df.empty:
+            self.ax_history.set_xlabel("Prediction #")
+            self.ax_history.set_ylabel("Predicted Price")
+            self.ax_history.set_title("Predicted price trend over time")
+            self.ax_history.grid(True, linestyle="--", alpha=0.4)
             self.ax_history.text(0.5, 0.5, "No history yet", ha="center", va="center", color=text_color)
         else:
-            y = self.history_df["Predicted Price"].astype(float).values
+            y = df["Predicted Price"].astype(float).values
             x = np.arange(len(y))
             self.ax_history.plot(x, y, marker="o", color=self.history_line_color)
             self.ax_history.set_xlabel("Prediction #")
@@ -790,6 +899,14 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self.ax_history.set_title("Predicted price trend over time")
             self.ax_history.grid(True, linestyle="--", alpha=0.4)
         self.canvas_history.draw_idle()
+
+    def _on_tab_changed(self, idx: int):
+        try:
+            if hasattr(self.ui, "tab_history"):
+                if idx == self.ui.tabWidget.indexOf(self.ui.tab_history):
+                    self.refresh_history_tab()
+        except Exception:
+            pass
 
     def slot_delete_history(self):
         if self.current_role == "customer":
@@ -911,7 +1028,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self.ui.btn_clear_history.setEnabled(False)
             self.ui.btn_export_history.setEnabled(True)
             if hasattr(self.ui, "btn_open_house_input_form"):
-                self.ui.btn_open_house_input_form.setEnabled(True)
+                self.ui.btn_open_house_input_form.setVisible(True)
         else:
             self.ui.tabWidget.setTabEnabled(0, True)
             self.ui.tabWidget.setTabEnabled(1, True)
@@ -924,7 +1041,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self.ui.btn_clear_history.setEnabled(True)
             self.ui.btn_export_history.setEnabled(True)
             if hasattr(self.ui, "btn_open_house_input_form"):
-                self.ui.btn_open_house_input_form.setEnabled(True)
+                self.ui.btn_open_house_input_form.setVisible(False)
 
     def get_visible_history_df(self) -> pd.DataFrame:
         if self.current_role == "customer" and self.current_user:
@@ -1074,7 +1191,7 @@ class ModelDetailsDialog(QDialog):
         if self.theme_mode == "dark":
             fig.set_facecolor("#221733")
             ax.set_facecolor("#2d2046")
-            text_color = "#DDDDDD"
+            text_color = "#FFFFFF"
         else:
             fig.set_facecolor("#f8e1f4")
             ax.set_facecolor("#ffffff")
@@ -1089,7 +1206,7 @@ class ModelDetailsDialog(QDialog):
     def _draw_all(self):
         y_true = self.results_df.iloc[:, 1].astype(float).values
         y_pred = self.results_df.iloc[:, 2].astype(float).values
-        text_color = "#DDDDDD" if self.theme_mode == "dark" else "#2b2342"
+        text_color = "#FFFFFF" if self.theme_mode == "dark" else "#2b2342"
         self.ax1.clear()
         self.ax1.scatter(y_true, y_pred, color=self.line_color, s=18)
         min_v = float(min(np.min(y_true), np.min(y_pred)))
@@ -1157,7 +1274,7 @@ class CityPriceMapDialog(QDialog):
         if self.theme_mode == "dark":
             fig.set_facecolor("#221733")
             ax.set_facecolor("#2d2046")
-            self.text_color = "#DDDDDD"
+            self.text_color = "#FFFFFF"
         else:
             fig.set_facecolor("#f8e1f4")
             ax.set_facecolor("#ffffff")
@@ -1319,7 +1436,7 @@ class CityPriceMapDialog(QDialog):
             txt = f"{names[i]}\nGiá thực tế: {actuals[i]:.4f}\nGiá dự đoán: {preds[i]:.4f}"
             self.annot.set_text(txt)
             fc = "#FFF59D" if self.theme_mode != "dark" else "#4a3976"
-            ec = "#2b2342" if self.theme_mode != "dark" else "#DDDDDD"
+            ec = "#2b2342" if self.theme_mode != "dark" else "#FFFFFF"
             self.annot.get_bbox_patch().set_facecolor(fc)
             self.annot.get_bbox_patch().set_edgecolor(ec)
             self.annot.set_visible(True)

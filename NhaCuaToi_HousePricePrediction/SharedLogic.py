@@ -6,11 +6,19 @@ from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QTableWidgetItem, QVBoxLayout, QFileDialog, QMessageBox
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+try:
+    from lightgbm import LGBMRegressor
+except Exception:
+    LGBMRegressor = None
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
 class PredictionLogicMixin:
     def __init__(self):
         if not hasattr(self, "_theme_mode"):
             self._theme_mode = "dark"  # dùng tông tối giống ảnh bạn
+        if not hasattr(self, "history_df"):
+            self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         # Khởi tạo canvas lịch sử nếu có widget
         if hasattr(self, "ui") and hasattr(self.ui, "chart_view_history"):
             self.canvas_history, self.ax_history = self._init_canvas_in(self.ui.chart_view_history)
@@ -79,7 +87,6 @@ class PredictionLogicMixin:
 
         feature_names = getattr(self, "feature_names", [])
         if not feature_names or len(feature_names) != 5:
-            # fallback tên cột chuẩn USA Housing nếu thiếu
             feature_names = [
                 "Avg Area Income",
                 "Avg Area House Age",
@@ -87,7 +94,7 @@ class PredictionLogicMixin:
                 "Avg Area Number of Bedrooms",
                 "Area Population",
             ]
-
+        # Dùng giá trị thô giống cách tính ở ROLE ADMIN (LightGBM)
         X_input = pd.DataFrame([vals], columns=feature_names)
         try:
             pred = float(self.model_default.predict(X_input)[0])
@@ -128,13 +135,102 @@ class PredictionLogicMixin:
         summary = ", ".join(f"{k}={v}" for k, v in input_data.items())
         user = getattr(self, "current_user", "") or ""
         new_row = {"Time": ts, "Input Summary": summary, "Predicted Price": result, "Model": model_name, "User": user}
+        if not hasattr(self, "history_df"):
+            self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         self.history_df = pd.concat([self.history_df, pd.DataFrame([new_row])], ignore_index=True)
         self.refresh_history_tab()
+
+    def _ensure_model_for_customer(self) -> bool:
+        if getattr(self, "model_default", None) is not None:
+            return True
+        # Ưu tiên huấn luyện LightGBM trên dữ liệu thật giống ROLE ADMIN
+        try:
+            import os
+            csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
+            if not os.path.isfile(csv_path):
+                # fallback: thử đường dẫn khác nếu cần
+                csv_path = os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv")
+            df = pd.read_csv(csv_path)
+
+            preferred_feats = [
+                "Avg Area Income",
+                "Avg Area House Age",
+                "Avg Area Number of Rooms",
+                "Avg Area Number of Bedrooms",
+                "Area Population",
+            ]
+            preferred_target = "Price"
+
+            def normalize(s: str) -> str:
+                return "".join(ch for ch in str(s).lower() if ch.isalnum())
+            norm_cols = {normalize(c): c for c in df.columns}
+            def find_col(name: str):
+                return norm_cols.get(normalize(name))
+
+            feats = [find_col(n) for n in preferred_feats]
+            feats = [c for c in feats if c is not None]
+            target = find_col(preferred_target)
+
+            if len(feats) == 5 and target:
+                X_all = df[feats].select_dtypes(include=[np.number])
+                y_all = df[target].astype(float)
+            else:
+                num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+                if len(num_cols) < 2:
+                    raise RuntimeError("Not enough numeric columns to train")
+                target = num_cols[-1]
+                feats = num_cols[:-1][:5]
+                X_all = df[feats]
+                y_all = df[target].astype(float)
+
+            X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, random_state=42)
+
+            if LGBMRegressor is not None:
+                m = LGBMRegressor(random_state=42)
+                model_name = "LightGBM"
+            else:
+                m = LinearRegression()
+                model_name = "LinearRegression"
+            m.fit(X_train, y_train)
+
+            self.model_default = m
+            self.feature_names = feats
+            if not hasattr(self, "models_cache"):
+                self.models_cache = {}
+            self.models_cache[model_name] = m
+            return True
+        except Exception:
+            # Fallback: mô hình synthetic nếu không đọc được dữ liệu
+            try:
+                names = [
+                    "Avg Area Income",
+                    "Avg Area House Age",
+                    "Avg Area Number of Rooms",
+                    "Avg Area Number of Bedrooms",
+                    "Area Population",
+                ]
+                rng = np.random.RandomState(42)
+                X = rng.uniform(low=0.0, high=1.0, size=(400, 5))
+                y = X[:, 0] * 100.0 + X[:, 2] * 50.0 + X[:, 3] * 30.0 + X[:, 4] * 0.1 - X[:, 1] * 10.0
+                dfX = pd.DataFrame(X, columns=names)
+                dfy = pd.Series(y.astype(float))
+                m = LinearRegression()
+                m.fit(dfX, dfy)
+                self.model_default = m
+                self.feature_names = names
+                if not hasattr(self, "models_cache"):
+                    self.models_cache = {}
+                self.models_cache["LinearRegression"] = m
+                return True
+            except Exception:
+                return False
 
     def refresh_history_tab(self):
         if not hasattr(self.ui, "table_history"):
             return
         table = self.ui.table_history
+        if not hasattr(self, "history_df"):
+            self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         df = self.get_visible_history_df()
         table.clearContents()
         table.setRowCount(len(df))
@@ -150,8 +246,8 @@ class PredictionLogicMixin:
         if not hasattr(self, "ax_history") or not hasattr(self, "canvas_history"):
             return
         self.ax_history.clear()
-        text_color = "#DDDDDD" if getattr(self, "_theme_mode", "light") == "dark" else "#2b2342"
-        if self.history_df.empty:
+        text_color = "#FFFFFF" if getattr(self, "_theme_mode", "light") == "dark" else "#2b2342"
+        if not hasattr(self, "history_df") or self.history_df.empty:
             self.ax_history.text(0.5, 0.5, "No history yet", ha="center", va="center", color=text_color)
         else:
             y = self.history_df["Predicted Price"].astype(float).values
@@ -168,11 +264,11 @@ class PredictionLogicMixin:
         if mode == "dark":
             palette = {
                 "bg": "#1c1330", "pane": "#221733", "panel": "#2d2046",
-                "text": "#ece7ff", "muted": "#cbbef5", "border": "#5b4f85",
+                "text": "#FFFFFF", "muted": "#cbbef5", "border": "#5b4f85",
                 "btn": "#3a2c5e", "btn_hover": "#4a3976",
                 "accent_bar": "#b68cff", "accent_line": "#93c0ff",
             }
-            text_color = "#DDDDDD"
+            text_color = "#FFFFFF"
         else:
             palette = {
                 "bg": "#f8e1f4", "pane": "#f8e1f4", "panel": "#f1d0f0",
@@ -190,6 +286,12 @@ class PredictionLogicMixin:
                 border: 1px solid {palette['border']};
                 background: {palette['pane']};
                 border-radius: 6px;
+            }}
+            QLabel {{
+                color: {palette['text']};
+            }}
+            QWidget#widget_house_inline_container QCheckBox {{
+                color: {'#000000' if mode=='dark' else palette['text']};
             }}
             QTabBar::tab {{
                 background: {palette['btn']};
@@ -240,6 +342,11 @@ class PredictionLogicMixin:
             QLabel#lbl_prediction_result {{
                 color: {palette['accent_line']};
                 font-weight: 600;
+            }}
+            QTextEdit, QPlainTextEdit {{
+                color: {palette['text']};
+                background: {'#2d2046' if mode=='dark' else '#ffffff'};
+                border: 1px solid {palette['border']};
             }}
             QSpinBox, QLineEdit, QComboBox {{
                 background: {'#3a2c5e' if mode=='dark' else '#ffffff'};

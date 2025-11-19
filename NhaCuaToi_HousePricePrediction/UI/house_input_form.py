@@ -58,8 +58,13 @@ class HouseInputForm(QDialog):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         form = QFormLayout()
+        form.setFieldGrowthPolicy(QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
         self.input_floor_area = QLineEdit(self)
+        sp_exp = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.input_floor_area.setSizePolicy(sp_exp)
+        self.input_floor_area.setMinimumWidth(520)
+        self.input_floor_area.setMinimumHeight(30)
         self.lbl_err_floor_area = QLabel("", self)
         self.lbl_err_floor_area.setStyleSheet("color: #c0392b;")
         form.addRow("Floor area (m²)", self.input_floor_area)
@@ -67,6 +72,8 @@ class HouseInputForm(QDialog):
 
         self.spin_bedrooms = QSpinBox(self)
         self.spin_bedrooms.setRange(0, 10)
+        self.spin_bedrooms.setMinimumWidth(180)
+        self.spin_bedrooms.setMinimumHeight(28)
         self.lbl_err_bedrooms = QLabel("", self)
         self.lbl_err_bedrooms.setStyleSheet("color: #c0392b;")
         form.addRow("Number of bedrooms", self.spin_bedrooms)
@@ -74,6 +81,8 @@ class HouseInputForm(QDialog):
 
         self.spin_bathrooms = QSpinBox(self)
         self.spin_bathrooms.setRange(0, 10)
+        self.spin_bathrooms.setMinimumWidth(180)
+        self.spin_bathrooms.setMinimumHeight(28)
         self.lbl_err_bathrooms = QLabel("", self)
         self.lbl_err_bathrooms.setStyleSheet("color: #c0392b;")
         form.addRow("Number of bathrooms", self.spin_bathrooms)
@@ -81,6 +90,8 @@ class HouseInputForm(QDialog):
 
         self.combo_property_type = QComboBox(self)
         self.combo_property_type.addItems(self.property_types)
+        self.combo_property_type.setMinimumWidth(360)
+        self.combo_property_type.setMinimumHeight(28)
         self.lbl_err_property_type = QLabel("", self)
         self.lbl_err_property_type.setStyleSheet("color: #c0392b;")
         form.addRow("Property type", self.combo_property_type)
@@ -88,6 +99,8 @@ class HouseInputForm(QDialog):
 
         self.combo_location = QComboBox(self)
         self.combo_location.addItems(self.locations)
+        self.combo_location.setMinimumWidth(360)
+        self.combo_location.setMinimumHeight(28)
         self.lbl_err_location = QLabel("", self)
         self.lbl_err_location.setStyleSheet("color: #c0392b;")
         form.addRow("Location (district/area)", self.combo_location)
@@ -95,6 +108,8 @@ class HouseInputForm(QDialog):
 
         self.combo_age = QComboBox(self)
         self.combo_age.addItems(self.age_options)
+        self.combo_age.setMinimumWidth(360)
+        self.combo_age.setMinimumHeight(28)
         self.lbl_err_age = QLabel("", self)
         self.lbl_err_age.setStyleSheet("color: #c0392b;")
         form.addRow("Age / condition", self.combo_age)
