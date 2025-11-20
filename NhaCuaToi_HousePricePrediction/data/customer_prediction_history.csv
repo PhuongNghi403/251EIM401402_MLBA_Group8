@@ -1,7 +1,14 @@
 Time,Input Summary,Predicted Price,Model,User
 2025-11-20 15:44:07,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",4.3438108957009725,LightGBM,customer
 2025-11-20 15:57:39,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",3.6114516020256406,LightGBM,customer
-2025-11-20 15:57:51,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.795654826671943,LightGBM,customer
 2025-11-20 15:57:54,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.795654826671943,LightGBM,customer
 2025-11-20 15:58:04,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.8552947515119405,LightGBM,customer
 2025-11-20 15:58:30,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.490285060375772,LightGBM,customer
+2025-11-20 19:42:11,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.149590492248535,XGBoost,customer
+2025-11-20 19:42:19,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.467973709106445,XGBoost,customer
+2025-11-20 19:42:23,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.467973709106445,XGBoost,customer
+2025-11-20 19:42:27,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.307986259460449,XGBoost,customer
+2025-11-20 19:42:32,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",4.294506072998047,XGBoost,customer
+2025-11-20 19:55:31,"Area=100.0, Frontage=7.4, Floors=4.0, Bedrooms=5.0, Bathrooms=4.0",6.782621383666992,XGBoost,customer
+2025-11-20 19:56:09,"Area=50.0, Frontage=6.0, Floors=3.0, Bedrooms=2.0, Bathrooms=1.0",2.881848096847534,XGBoost,customer
+2025-11-20 20:22:32,"Area=110.0, Frontage=10.0, Floors=4.0, Bedrooms=5.0, Bathrooms=5.0",8.184212684631348,XGBoost,customer

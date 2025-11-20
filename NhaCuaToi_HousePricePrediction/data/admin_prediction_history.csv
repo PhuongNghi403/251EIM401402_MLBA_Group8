@@ -5,3 +5,5 @@ Time,Input Summary,Predicted Price,Model,User
 2025-11-20 18:03:17,"Area=11.0, Frontage=2.0, Floors=3.0, Bedrooms=2.0, Bathrooms=3.0",4.318387798130653,XGBoost,admin
 2025-11-20 18:19:51,"Area=354.0, Frontage=34.0, Floors=3.0, Bedrooms=2.0, Bathrooms=4.0",11.60177593207926,XGBoost,admin
 2025-11-20 18:58:09,"Area=443.0, Frontage=3.0, Floors=3.0, Bedrooms=3.0, Bathrooms=3.0",12.174620951289729,LinearRegression,admin
+2025-11-20 19:41:17,"Area=99.0, Frontage=7.8, Floors=4.0, Bedrooms=3.0, Bathrooms=2.0",5.5519118309021,XGBoost,admin
+2025-11-20 20:40:22,"Area=99.0, Frontage=8.3, Floors=3.0, Bedrooms=3.0, Bathrooms=3.0",6.95856233417066,LightGBM,admin

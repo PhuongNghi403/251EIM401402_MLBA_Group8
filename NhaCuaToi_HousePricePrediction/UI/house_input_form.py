@@ -3,12 +3,8 @@ from PyQt6.QtWidgets import (
     QDialog,
     QFormLayout,
     QVBoxLayout,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
-    QComboBox,
-    QSpinBox,
-    QCheckBox,
     QPushButton,
 )
 import pandas as pd
@@ -21,7 +17,6 @@ class HouseInputForm(QDialog):
         self.setModal(True)
         self._parent = parent
 
-        self._init_mappings()
         self._build_ui()
 
     def _init_mappings(self):
@@ -102,74 +97,52 @@ class HouseInputForm(QDialog):
         form = QFormLayout()
         form.setFieldGrowthPolicy(QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
-        self.input_floor_area = QLineEdit(self)
-        # CHỈNH: không cho nở rộng, đặt chiều rộng đồng nhất
-        sp_fix = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed,
-        QtWidgets.QSizePolicy.Policy.Fixed)
-        self.input_floor_area.setSizePolicy(sp_fix)
-        self.input_floor_area.setMinimumWidth(360)
-        self.input_floor_area.setMaximumWidth(360)
-        self.input_floor_area.setMinimumHeight(30)
-        self.lbl_err_floor_area = QLabel("", self)
-        self.lbl_err_floor_area.setStyleSheet("color: #c0392b;")
-        form.addRow("Floor area (m²)", self.input_floor_area)
-        form.addRow("", self.lbl_err_floor_area)
+        sp_fix = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
 
-        self.spin_bedrooms = QSpinBox(self)
-        self.spin_bedrooms.setRange(0, 10)
-        self.spin_bedrooms.setMinimumWidth(180)
-        self.spin_bedrooms.setMinimumHeight(28)
+        self.input_area = QLineEdit(self)
+        self.input_area.setSizePolicy(sp_fix)
+        self.input_area.setMinimumWidth(360)
+        self.input_area.setMaximumWidth(360)
+        self.input_area.setMinimumHeight(30)
+        self.lbl_err_area = QLabel("", self)
+        form.addRow("Area (m²)", self.input_area)
+        form.addRow("", self.lbl_err_area)
+
+        self.input_frontage = QLineEdit(self)
+        self.input_frontage.setSizePolicy(sp_fix)
+        self.input_frontage.setMinimumWidth(360)
+        self.input_frontage.setMaximumWidth(360)
+        self.input_frontage.setMinimumHeight(30)
+        self.lbl_err_frontage = QLabel("", self)
+        form.addRow("Frontage (m)", self.input_frontage)
+        form.addRow("", self.lbl_err_frontage)
+
+        self.input_floors = QLineEdit(self)
+        self.input_floors.setSizePolicy(sp_fix)
+        self.input_floors.setMinimumWidth(360)
+        self.input_floors.setMaximumWidth(360)
+        self.input_floors.setMinimumHeight(30)
+        self.lbl_err_floors = QLabel("", self)
+        form.addRow("Floors", self.input_floors)
+        form.addRow("", self.lbl_err_floors)
+
+        self.input_bedrooms = QLineEdit(self)
+        self.input_bedrooms.setSizePolicy(sp_fix)
+        self.input_bedrooms.setMinimumWidth(360)
+        self.input_bedrooms.setMaximumWidth(360)
+        self.input_bedrooms.setMinimumHeight(30)
         self.lbl_err_bedrooms = QLabel("", self)
-        self.lbl_err_bedrooms.setStyleSheet("color: #c0392b;")
-        form.addRow("Number of bedrooms", self.spin_bedrooms)
+        form.addRow("Bedrooms", self.input_bedrooms)
         form.addRow("", self.lbl_err_bedrooms)
 
-        self.spin_bathrooms = QSpinBox(self)
-        self.spin_bathrooms.setRange(0, 10)
-        self.spin_bathrooms.setMinimumWidth(180)
-        self.spin_bathrooms.setMinimumHeight(28)
+        self.input_bathrooms = QLineEdit(self)
+        self.input_bathrooms.setSizePolicy(sp_fix)
+        self.input_bathrooms.setMinimumWidth(360)
+        self.input_bathrooms.setMaximumWidth(360)
+        self.input_bathrooms.setMinimumHeight(30)
         self.lbl_err_bathrooms = QLabel("", self)
-        self.lbl_err_bathrooms.setStyleSheet("color: #c0392b;")
-        form.addRow("Number of bathrooms", self.spin_bathrooms)
+        form.addRow("Bathrooms", self.input_bathrooms)
         form.addRow("", self.lbl_err_bathrooms)
-
-        self.combo_property_type = QComboBox(self)
-        self.combo_property_type.addItems(self.property_types)
-        self.combo_property_type.setMinimumWidth(360)
-        self.combo_property_type.setMinimumHeight(28)
-        self.lbl_err_property_type = QLabel("", self)
-        self.lbl_err_property_type.setStyleSheet("color: #c0392b;")
-        form.addRow("Property type", self.combo_property_type)
-        form.addRow("", self.lbl_err_property_type)
-
-        self.combo_location = QComboBox(self)
-        self.combo_location.addItems(self.locations)
-        self.combo_location.setMinimumWidth(360)
-        self.combo_location.setMinimumHeight(28)
-        self.lbl_err_location = QLabel("", self)
-        self.lbl_err_location.setStyleSheet("color: #c0392b;")
-        form.addRow("City / province", self.combo_location)
-        form.addRow("", self.lbl_err_location)
-
-        self.combo_age = QComboBox(self)
-        self.combo_age.addItems(self.age_options)
-        self.combo_age.setMinimumWidth(360)
-        self.combo_age.setMinimumHeight(28)
-        self.lbl_err_age = QLabel("", self)
-        self.lbl_err_age.setStyleSheet("color: #c0392b;")
-        form.addRow("Age / condition", self.combo_age)
-        form.addRow("", self.lbl_err_age)
-
-        amenities_box = QHBoxLayout()
-        self.chk_school = QCheckBox("Near school", self)
-        self.chk_hospital = QCheckBox("Near hospital", self)
-        self.chk_mall = QCheckBox("Near shopping mall", self)
-        self.chk_park = QCheckBox("Near park", self)
-        amenities_box.addWidget(self.chk_school)
-        amenities_box.addWidget(self.chk_hospital)
-        amenities_box.addWidget(self.chk_mall)
-        amenities_box.addWidget(self.chk_park)
-        form.addRow("Nearby amenities", amenities_box)
 
         layout.addLayout(form)
 
@@ -188,14 +161,12 @@ class HouseInputForm(QDialog):
         self.lbl_result.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lbl_result)
 
-        # THÊM: dòng nhỏ hiển thị Price Range ngay dưới Predicted Price
         self.lbl_price_range = QLabel("", self)
         font_small = QtGui.QFont()
         font_small.setPointSize(12)
         font_small.setItalic(True)
         self.lbl_price_range.setFont(font_small)
         self.lbl_price_range.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        # Màu nhã cho light/dark
         try:
             color = "#cbbef5" if getattr(self._parent, "_theme_mode", "light") == "dark" else "#7b6f9e"
         except Exception:
@@ -207,119 +178,63 @@ class HouseInputForm(QDialog):
 
     def _read_and_validate(self):
         errors = {}
-        floor_text = self.input_floor_area.text().strip()
-        try:
-            floor_area = float(floor_text)
-            if floor_area <= 0:
-                errors["floor_area"] = "Please enter a valid floor area greater than 0"
-        except Exception:
-            errors["floor_area"] = "Please enter a valid floor area greater than 0"
-
-        bedrooms = int(self.spin_bedrooms.value())
-        bathrooms = int(self.spin_bathrooms.value())
-        if bedrooms < 0 or bedrooms > 10:
-            errors["bedrooms"] = "Bedrooms must be between 0 and 10"
-        if bathrooms < 0 or bathrooms > 10:
-            errors["bathrooms"] = "Bathrooms must be between 0 and 10"
-
-        prop_type = self.combo_property_type.currentText().strip()
-        location = self.combo_location.currentText().strip()
-        age_label = self.combo_age.currentText().strip()
-        if not prop_type:
-            errors["prop_type"] = "Please select a property type"
-        if not location:
-            errors["location"] = "Please select a location"
-        if not age_label:
-            errors["age"] = "Please select an age/condition"
-
-        self.lbl_err_floor_area.setText(errors.get("floor_area", ""))
+        def parse(line_edit):
+            t = line_edit.text().strip()
+            try:
+                return float(t)
+            except Exception:
+                return None
+        area = parse(self.input_area)
+        frontage = parse(self.input_frontage)
+        floors = parse(self.input_floors)
+        bedrooms = parse(self.input_bedrooms)
+        bathrooms = parse(self.input_bathrooms)
+        if area is None or area <= 0:
+            errors["area"] = "Please enter a valid area"
+        if frontage is None or frontage < 0:
+            errors["frontage"] = "Please enter a valid frontage"
+        if floors is None or floors <= 0:
+            errors["floors"] = "Please enter valid floors"
+        if bedrooms is None or bedrooms < 0:
+            errors["bedrooms"] = "Please enter valid bedrooms"
+        if bathrooms is None or bathrooms < 0:
+            errors["bathrooms"] = "Please enter valid bathrooms"
+        self.lbl_err_area.setText(errors.get("area", ""))
+        self.lbl_err_frontage.setText(errors.get("frontage", ""))
+        self.lbl_err_floors.setText(errors.get("floors", ""))
         self.lbl_err_bedrooms.setText(errors.get("bedrooms", ""))
         self.lbl_err_bathrooms.setText(errors.get("bathrooms", ""))
-        self.lbl_err_property_type.setText(errors.get("prop_type", ""))
-        self.lbl_err_location.setText(errors.get("location", ""))
-        self.lbl_err_age.setText(errors.get("age", ""))
-
         if errors:
             return None
-
-        amenities = {
-            "NearSchool": 1 if self.chk_school.isChecked() else 0,
-            "NearHospital": 1 if self.chk_hospital.isChecked() else 0,
-            "NearMall": 1 if self.chk_mall.isChecked() else 0,
-            "NearPark": 1 if self.chk_park.isChecked() else 0,
-        }
-
         return {
-            "FloorArea": floor_area,
+            "Area": area,
+            "Frontage": frontage,
+            "Floors": floors,
             "Bedrooms": bedrooms,
             "Bathrooms": bathrooms,
-            "PropertyType": prop_type,
-            "Location": location,
-            "AgeLabel": age_label,
-            "Amenities": amenities,
         }
 
     def _build_feature_vector(self, clean_obj):
-        req_names = list(getattr(getattr(self, "_parent", None), "model_default", None).feature_names_in_) if getattr(self._parent, "model_default", None) and hasattr(self._parent.model_default, "feature_names_in_") else []
-        if not req_names:
-            req_names = ["Area", "Bathrooms", "Bedrooms", "Floors", "Frontage"]
-
-        area = float(clean_obj["FloorArea"]) if clean_obj.get("FloorArea") is not None else 0.0
-        bedrooms = float(clean_obj.get("Bedrooms", 0))
-        bathrooms = float(clean_obj.get("Bathrooms", 0))
-        floors = max(1.0, (bedrooms + bathrooms) / 2.0)
-        frontage = max(0.0, area / 10.0) + 0.5 * sum(clean_obj["Amenities"].values())
-
-        if set(req_names) == set([
-            "Avg Area Income",
-            "Avg Area House Age",
-            "Avg Area Number of Rooms",
-            "Avg Area Number of Bedrooms",
-            "Area Population",
-        ]):
-            loc = clean_obj.get("Location")
-            age_label = clean_obj.get("AgeLabel")
-            prop_type = clean_obj.get("PropertyType")
-            amen_count = int(bool(clean_obj.get("Amenities", {}).get("NearSchool", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearHospital", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearMall", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearPark", 0)))
-            income = float(self.location_income.get(loc, 50000.0))
-            population = float(self.location_population.get(loc, 300000.0))
-            age_val = float(self.age_to_value.get(age_label, 5.0))
-            prop_factor = {"Apartment": 1.0, "Townhouse": 1.1, "Villa": 1.25}.get(prop_type, 1.0)
-            num_rooms = bedrooms + bathrooms + 1.0 + 0.1 * amen_count + 0.2 * prop_factor
-            income = income * (1.0 + 0.10 * prop_factor + 0.02 * amen_count)
-            population = population * (1.0 + 0.01 * amen_count)
-            values_by_name = {
-                "Avg Area Income": income,
-                "Avg Area House Age": age_val,
-                "Avg Area Number of Rooms": float(num_rooms),
-                "Avg Area Number of Bedrooms": float(bedrooms),
-                "Area Population": population,
-            }
-        else:
-            loc = clean_obj.get("Location")
-            age_label = clean_obj.get("AgeLabel")
-            prop_type = clean_obj.get("PropertyType")
-            amen_count = int(bool(clean_obj.get("Amenities", {}).get("NearSchool", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearHospital", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearMall", 0))) + int(bool(clean_obj.get("Amenities", {}).get("NearPark", 0)))
-            income = float(self.location_income.get(loc, 60000.0))
-            population = float(self.location_population.get(loc, 1000000.0))
-            age_val = float(self.age_to_value.get(age_label, 5.0))
-            prop_factor = {"Apartment": 1.0, "Townhouse": 1.1, "Villa": 1.25}.get(prop_type, 1.0)
-            floors = max(1.0, floors + 0.2 * prop_factor - 0.1 * age_val)
-            frontage = float(frontage) + 0.0005 * income + 0.005 * (population / 1000.0) + 5.0 * prop_factor - age_val
-            values_by_name = {
-                "Area": area,
-                "Bathrooms": bathrooms,
-                "Bedrooms": bedrooms,
-                "Floors": float(floors),
-                "Frontage": float(frontage),
-            }
-
+        req_names = []
+        try:
+            if getattr(self._parent, "model_default", None) and hasattr(self._parent.model_default, "feature_names_in_"):
+                req_names = list(getattr(self._parent.model_default, "feature_names_in_", []))
+        except Exception:
+            req_names = []
+        if not req_names or len(req_names) != 5:
+            req_names = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
+        values_by_name = {
+            "Area": float(clean_obj.get("Area", 0.0) or 0.0),
+            "Frontage": float(clean_obj.get("Frontage", 0.0) or 0.0),
+            "Floors": float(clean_obj.get("Floors", 0.0) or 0.0),
+            "Bedrooms": float(clean_obj.get("Bedrooms", 0.0) or 0.0),
+            "Bathrooms": float(clean_obj.get("Bathrooms", 0.0) or 0.0),
+        }
         cols = []
         vals = []
         for name in req_names:
             cols.append(name)
             vals.append(float(values_by_name.get(name, 0.0)))
-
         return pd.DataFrame([vals], columns=cols), values_by_name
 
     def _on_predict_clicked(self):
@@ -342,33 +257,15 @@ class HouseInputForm(QDialog):
                 QtWidgets.QMessageBox.critical(self, "Error", f"Prediction failed: {e}")
                 return
         else:
-            income = values_by_name.get("Avg Area Income", 0.0)
-            age = values_by_name.get("Avg Area House Age", 0.0)
-            rooms = values_by_name.get("Avg Area Number of Rooms", 0.0)
-            bedrooms = values_by_name.get("Avg Area Number of Bedrooms", 0.0)
-            population = values_by_name.get("Area Population", 0.0)
-            pred = max(0.0, income * 100.0 + rooms * 50000.0 + bedrooms * 30000.0 + population * 0.1 - age * 10000.0)
-
-        self.lbl_result.setText(f"Predicted Price (USD): {pred:,.2f}")
-
-        # Cập nhật Price Range ngay dưới Predicted Price
+            pred = 0.0
+        self.lbl_result.setText(f"Predicted Price (Million USD): {pred:,.2f}")
         try:
-            age_label = clean.get("AgeLabel", "5–10 years")
-            prop_type = clean.get("PropertyType", "Apartment")
-            base_var = {
-                "New": 0.06,
-                "< 5 years": 0.08,
-                "5–10 years": 0.10,
-                "> 10 years": 0.12,
-            }.get(age_label, 0.10)
-            type_delta = {"Apartment": -0.01, "Townhouse": 0.00, "Villa": 0.02}.get(prop_type, 0.00)
-            var = max(0.03, base_var + type_delta)
-
+            var = 0.10
             low = max(0.0, pred * (1.0 - var))
             high = pred * (1.0 + var)
             color = "#cbbef5" if getattr(self._parent, "_theme_mode", "light") == "dark" else "#7b6f9e"
             self.lbl_price_range.setStyleSheet(f"color: {color};")
-            self.lbl_price_range.setText(f"Price Range (USD): {low:,.2f} – {high:,.2f}")
+            self.lbl_price_range.setText(f"Price Range (Million USD): {low:,.2f} – {high:,.2f}")
         except Exception:
             self.lbl_price_range.setText("")
         try:
@@ -377,42 +274,28 @@ class HouseInputForm(QDialog):
         except Exception:
             pass
         try:
-            breakdown = self._compute_breakdown(clean, values_by_name)
+            breakdown = self._compute_breakdown(values_by_name)
             if hasattr(self._parent, "_update_price_breakdown"):
                 self._parent._update_price_breakdown(breakdown)
         except Exception:
             pass
- 
-        input_summary = {
-            "AvgAreaIncome": values_by_name.get("Avg Area Income", 0.0),
-            "AvgAreaHouseAge": values_by_name.get("Avg Area House Age", 0.0),
-            "AvgAreaNumRooms": values_by_name.get("Avg Area Number of Rooms", 0.0),
-            "AvgAreaNumBedrooms": values_by_name.get("Avg Area Number of Bedrooms", 0.0),
-            "AreaPopulation": values_by_name.get("Area Population", 0.0),
-        }
+        input_summary = values_by_name
         try:
             self._parent.save_to_history(input_summary, pred, self._parent._get_model_default_name())
         except Exception:
             pass
 
-    def _compute_breakdown(self, clean_obj, values_by_name):
-        area = float(clean_obj.get("FloorArea", 0) or 0)
-        loc = clean_obj.get("Location") or self.combo_location.currentText()
-        amenities = clean_obj.get("Amenities", {})
-        amen_count = int(bool(amenities.get("NearSchool", 0))) + int(bool(amenities.get("NearHospital", 0))) + int(bool(amenities.get("NearMall", 0))) + int(bool(amenities.get("NearPark", 0)))
-        prop = clean_obj.get("PropertyType") or self.combo_property_type.currentText()
-        # scale diện tích để không áp đảo các yếu tố khác trong breakdown
-        w_area = max(0.0, area / 100.0)
-        w_loc = max(0.0, (self.location_income.get(loc, 60000.0) / 1000.0) + (self.location_population.get(loc, 1000000.0) / 100000.0))
-        prop_factor = {"Apartment": 1.0, "Townhouse": 1.1, "Villa": 1.25}.get(prop, 1.0)
-        w_prop = 100.0 * prop_factor
-        w_amen = 20.0 * float(amen_count)
-        s = w_area + w_loc + w_prop + w_amen
+    def _compute_breakdown(self, values):
+        labels = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
+        vals = [float(values.get(k, 0.0)) for k in labels]
+        s = sum(v for v in vals if v >= 0)
         if s <= 0:
-            return {"Area": 25.0, "Location": 25.0, "Amenities": 25.0, "Property type": 25.0}
-        return {
-            "Area": w_area,
-            "Location": w_loc,
-            "Amenities": w_amen,
-            "Property type": w_prop,
-        }
+            return {k: 20.0 for k in labels}
+        min_pct = 3.0
+        n = len(vals)
+        base = min_pct * n
+        remaining = max(0.0, 100.0 - base)
+        weights = [max(0.0, v) / s for v in vals]
+        sum_w = sum(weights) or 1.0
+        perc = [min_pct + remaining * (w / sum_w) for w in weights]
+        return {labels[i]: perc[i] for i in range(n)}

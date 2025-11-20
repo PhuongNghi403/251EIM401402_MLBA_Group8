@@ -1,9 +1,8 @@
 {
   "dataset_items": [
-    "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv",
-    "C:/Users/Lenovo/Downloads/raw_value_dataset.csv"
+    "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv"
   ],
-  "dataset_current": "C:/Users/Lenovo/Downloads/raw_value_dataset.csv",
+  "dataset_current": "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv",
   "train_rate": 80,
   "default_model_name": "LinearRegression",
   "combo_default_items": [
@@ -29,8 +28,8 @@
     {
       "Model": "RandomForest",
       "MAE": "1.5386",
-      "RMSE": "1.9658",
-      "R²": "0.2126"
+      "RMSE": "1.9659",
+      "R²": "0.2125"
     },
     {
       "Model": "GradientBoosting",

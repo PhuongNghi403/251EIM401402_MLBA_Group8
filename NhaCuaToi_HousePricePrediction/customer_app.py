@@ -561,30 +561,15 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         if f is None:
             return d
         try:
-            d["Floor area"] = f.input_floor_area.text().strip()
-            d["Bedrooms"] = int(f.spin_bedrooms.value())
-            d["Bathrooms"] = int(f.spin_bathrooms.value())
-            d["Property type"] = f.combo_property_type.currentText().strip()
-            d["Province"] = f.combo_location.currentText().strip()
-            d["Age/Condition"] = f.combo_age.currentText().strip()
+            d["Area"] = f.input_area.text().strip()
+            d["Frontage"] = f.input_frontage.text().strip()
+            d["Floors"] = f.input_floors.text().strip()
+            d["Bedrooms"] = f.input_bedrooms.text().strip()
+            d["Bathrooms"] = f.input_bathrooms.text().strip()
             try:
-                d["Predicted Price (text)"] = f.lbl_result.text().strip()
+                d["Predicted Price"] = f.lbl_result.text().strip()
             except Exception:
                 pass
-            try:
-                d["Price Range (USD)"] = f.lbl_price_range.text().strip()
-            except Exception:
-                pass
-            amens = []
-            if f.chk_school.isChecked():
-                amens.append("Near school")
-            if f.chk_hospital.isChecked():
-                amens.append("Near hospital")
-            if f.chk_mall.isChecked():
-                amens.append("Near shopping mall")
-            if f.chk_park.isChecked():
-                amens.append("Near park")
-            d["Selected amenities"] = ", ".join(amens) if amens else "None"
         except Exception:
             pass
         return d
@@ -685,9 +670,8 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         d = {}
         try:
             d["Budget (USD)"] = ui.input_rec_budget.text().strip()
-            d["Floor area (m²)"] = ui.input_rec_area.text().strip()
-            d["Region"] = ui.combo_rec_region.currentText().strip()
-            d["Property type"] = ui.combo_rec_type.currentText().strip()
+            d["Min Area (m²)"] = ui.input_rec_min_area.text().strip()
+            d["Min Bedrooms"] = ui.input_rec_min_bedrooms.text().strip()
         except Exception:
             pass
         return d
@@ -698,7 +682,7 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         try:
             cols = [tbl.horizontalHeaderItem(i).text() for i in range(tbl.columnCount())]
         except Exception:
-            cols = ["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"]
+            cols = ["Price", "Area", "Bedrooms", "Floors", "Frontage", "City/Address"]
         for r in range(tbl.rowCount()):
             row = {}
             for c in range(tbl.columnCount()):
@@ -721,8 +705,8 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             if rows:
                 rec_headers = list(rows[0].keys())
             else:
-                rec_headers = ["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"]
-            base_keys = ["Budget (USD)", "Floor area (m²)", "Region", "Property type"]
+                rec_headers = ["Price", "Area", "Bedrooms", "Floors", "Frontage", "City/Address"]
+            base_keys = ["Budget (USD)", "Min Area (m²)", "Min Bedrooms"]
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 w = csv.writer(f)
                 w.writerow(["User Input"])
@@ -750,7 +734,7 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
         wb = Workbook()
         ws = wb.active
         ws.title = "Recommendation"
-        base_keys = ["Budget (USD)", "Floor area (m²)", "Region", "Property type"]
+        base_keys = ["Budget (USD)", "Min Area (m²)", "Min Bedrooms"]
         ws.cell(row=1, column=1, value="User Input")
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(base_keys))
         title_fill = PatternFill("solid", fgColor="6D1E3B")
@@ -1083,60 +1067,31 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
     def _init_recommendation_ui(self):
         if not hasattr(self.ui, "tab_recommend"):
             return
-        # tải df nếu cần và khởi tạo danh sách region giống dropdown ở form dự đoán
-        self._load_default_df_if_needed()
-        regions = []
-        try:
-            if hasattr(self, "inline_house_form") and getattr(self.inline_house_form, "locations", None):
-                regions = list(self.inline_house_form.locations)
-        except Exception:
-            pass
-        if not regions:
-            regions = [
-                "Hà Nội",
-                "Nam Từ Liêm",
-                "Hải Phòng",
-                "Đà Nẵng",
-                "TP.HCM",
-                "Vĩnh Long",
-                "Bến Tre",
-                "Hà Giang",
-                "Yên Bái",
-                "Tuyên Quang",
-                "Sơn La",
-                "Hưng Yên",
-                "Phú Thọ",
-                "Bình Định",
-                "Bình Dương",
-                "Bình Thuận",
-                "Lâm Đồng",
-                "Thừa Thiên Huế",
-                "Bà Rịa Vũng Tàu",
-            ]
-        try:
-            self.ui.combo_rec_region.clear()
-            self.ui.combo_rec_region.addItems(regions)
-            self.ui.combo_rec_region.setCurrentIndex(0)
-        except Exception:
-            pass
         # gắn sự kiện chạy gợi ý
         if hasattr(self.ui, "btn_run_recommendation"):
             self.ui.btn_run_recommendation.clicked.connect(self.slot_run_recommendation)
 
         # chuẩn bị bảng
         if hasattr(self.ui, "table_recommendation"):
-            self.ui.table_recommendation.setColumnCount(7)
-            self.ui.table_recommendation.setHorizontalHeaderLabels(["Property Code", "Price", "Area", "Floor", "Match (%)", "Region", "Type"])
+            self.ui.table_recommendation.setColumnCount(6)
+            self.ui.table_recommendation.setHorizontalHeaderLabels(["Price", "Area", "Bedrooms", "Floors", "Frontage", "City/Address"])
 
     def _load_default_df_if_needed(self):
         if isinstance(getattr(self, "df", None), pd.DataFrame) and not self.df.empty:
             return
         try:
-            csv_candidates = [
-                
-                os.path.join(os.path.dirname(__file__), "data", "raw_value_dataset.csv"),
-            ]
-            for p in csv_candidates:
+            import json
+            data_dir = os.path.join(os.path.dirname(__file__), "data")
+            meta_path = os.path.join(data_dir, "official_model_meta.json")
+            candidates = []
+            if os.path.isfile(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as mf:
+                    meta = json.load(mf)
+                dp = str(meta.get("dataset_path", "")).strip()
+                if dp:
+                    candidates.append(dp)
+            candidates.append(os.path.join(data_dir, "raw_value_dataset.csv"))
+            for p in candidates:
                 if os.path.isfile(p):
                     self.df = pd.read_csv(p)
                     return
@@ -1175,153 +1130,94 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             if self.df.empty:
                 self._error("Không có dữ liệu bất động sản để gợi ý.")
                 return
-            # Xác định các cột
             cols = list(self.df.columns)
-            price_col = self._find_col(cols, ["Price", "price", "Giá", "Gia"]) or None
+            price_col = self._find_col(cols, ["Price", "Giá", "Gia"]) or None
             area_col = self._find_col(cols, ["Area", "Diện tích", "Dientich"]) or None
-            city_col = self._find_col(cols, ["City", "Region", "Location", "Province"]) or None
-            type_col = self._find_col(cols, ["Type", "PropertyType", "Loainha"]) or None
-            floor_col = self._find_col(cols, ["Floors", "Floor", "Tang", "Tầng"]) or None
+            bedrooms_col = self._find_col(cols, ["Bedrooms", "Bed", "Phòng ngủ"]) or None
+            floors_col = self._find_col(cols, ["Floors", "Floor", "Tầng", "Tang"]) or None
+            frontage_col = self._find_col(cols, ["Frontage", "Mặt tiền", "Front"]) or None
+            city_col = self._find_col(cols, ["City", "Region", "Location", "Province", "Address", "District"]) or None
 
-            # Đọc input
             def _f(text):
                 t = (text or "").replace("_", "").replace(",", "").strip()
                 return float(t) if t else np.nan
             budget = _f(self.ui.input_rec_budget.text())
-            area_req = _f(self.ui.input_rec_area.text())
-            region_req = self.ui.combo_rec_region.currentText().strip()
-            type_req = self.ui.combo_rec_type.currentText().strip()
-            # Kiểm tra
+            min_area = _f(self.ui.input_rec_min_area.text())
+            min_bedrooms = _f(self.ui.input_rec_min_bedrooms.text())
+
             if np.isnan(budget) or budget <= 0:
                 self._error("Vui lòng nhập budget hợp lệ.")
                 return
-            if np.isnan(area_req) or area_req <= 0:
-                self._error("Vui lòng nhập diện tích hợp lệ.")
-                return
 
-            # Lọc sơ bộ: giá phải <= budget
             df = self.df.copy()
-            if price_col:
-                df[price_col] = df[price_col].astype(float)
-                df = df[df[price_col] <= float(budget)]
-            if city_col and region_req:
-                df = df[df[city_col].astype(str).str.lower().str.contains(region_req.lower())]
-            any_token = "optional"
-            if type_col and type_req and type_req.lower() != any_token:
-                df = df[df[type_col].astype(str).str.lower() == type_req.lower()]
-            if df.empty:
-                df = self.df.copy()
-                # nếu dữ liệu thật không phù hợp theo đơn vị giá, bổ sung dữ liệu giả lập
-            # Chèn dữ liệu giả lập để đảm bảo có nhiều kết quả và đúng đơn vị giá
-            try:
-                df_synth = self._generate_synthetic_df(
-                    price_col, area_col, city_col, type_col,
-                    budget, area_req, region_req, type_req, n=400
-                )
-                df = pd.concat([df, df_synth], axis=0, ignore_index=True)
-            except Exception:
-                pass
-
-            # Chuẩn hóa giá/diện tích
-            from sklearn.preprocessing import StandardScaler
-            scaler = StandardScaler()
-            try:
-                px = df[price_col].astype(float) if price_col else pd.Series([0.0] * len(df))
-                ar = df[area_col].astype(float) if area_col else pd.Series([0.0] * len(df))
-                scaler.fit(np.c_[px.fillna(0.0).values, ar.fillna(0.0).values])
-            except Exception:
-                scaler = StandardScaler(with_mean=False, with_std=False)
-
-            # Vector người dùng
-            try:
-                user_vec = scaler.transform([[budget, area_req]])[0]
-            except Exception:
-                user_vec = np.array([budget, area_req], dtype=float)
-
-            # Tính điểm cho từng property
-            results = []
-            for idx, row in df.iterrows():
-                price_s, area_s, region, ptype = self._vectorize(row, price_col, area_col, city_col, type_col, scaler)
-                prop_vec = np.array([price_s, area_s], dtype=float)
-                # Cosine similarity
-                num = float(np.dot(user_vec, prop_vec))
-                den = float(np.linalg.norm(user_vec) * np.linalg.norm(prop_vec))
-                cos = (num / den) if den > 1e-9 else 0.0
-                # Euclidean trên vector đã scale
-                dist = float(np.linalg.norm(user_vec - prop_vec))
-                # Floor
+            if price_col and not np.isnan(budget):
                 try:
-                    if floor_col:
-                        floor_val = int(float(row.get(floor_col, np.nan)))
-                        if floor_val <= 0:
-                            raise ValueError()
-                    else:
-                        rng = np.random.RandomState(int(idx) % 9973)
-                        floor_val = self._sample_floor(rng)
+                    df[price_col] = pd.to_numeric(df[price_col], errors="coerce")
+                    df = df[df[price_col] <= float(budget)]
                 except Exception:
-                    rng = np.random.RandomState((int(idx) * 17) % 9973)
-                    floor_val = self._sample_floor(rng)
-                # Điểm tổng hợp: 0.7*cos - 0.3*norm_dist (đưa dist về [0,1])
-                results.append({
-                    "ID": int(idx),
-                    "Title": f"Property #{int(idx)}",
-                    "Price": float(row.get(price_col, np.nan)) if price_col else np.nan,
-                    "Area": float(row.get(area_col, np.nan)) if area_col else np.nan,
-                    "Floor": floor_val,
-                    "Region": self._augment_region(region if region else region_req),
-                    "Type": (np.random.choice(["Apartment", "Townhouse", "Villa"]) if type_req.lower() == any_token else (ptype or type_req)),
-                    "Cos": cos,
-                    "Dist": dist,
-                })
+                    pass
+            else:
+                QtWidgets.QMessageBox.warning(self, "Thiếu cột", "Dữ liệu hiện tại không hỗ trợ tiêu chí ngân sách")
 
-            if not results:
+            if area_col and not np.isnan(min_area):
+                try:
+                    df[area_col] = pd.to_numeric(df[area_col], errors="coerce")
+                    df = df[df[area_col] >= float(min_area)]
+                except Exception:
+                    pass
+            elif not np.isnan(min_area):
+                QtWidgets.QMessageBox.warning(self, "Thiếu cột", "Dữ liệu hiện tại không hỗ trợ tiêu chí diện tích")
+
+            if bedrooms_col and not np.isnan(min_bedrooms):
+                try:
+                    df[bedrooms_col] = pd.to_numeric(df[bedrooms_col], errors="coerce")
+                    df = df[df[bedrooms_col] >= float(min_bedrooms)]
+                except Exception:
+                    pass
+            elif not np.isnan(min_bedrooms):
+                QtWidgets.QMessageBox.warning(self, "Thiếu cột", "Dữ liệu hiện tại không hỗ trợ tiêu chí số phòng ngủ")
+
+            if df.empty:
                 self._error("Không có kết quả phù hợp.")
                 return
-            # Chuẩn hóa dist để tính điểm
-            dists = np.array([r["Dist"] for r in results], dtype=float)
-            dmin, dmax = float(dists.min()), float(dists.max())
-            for r in results:
-                nd = 0.0 if dmax <= dmin else (r["Dist"] - dmin) / (dmax - dmin)
-                r["Score"] = 0.7 * r["Cos"] - 0.3 * nd
 
-            # Xếp hạng
-            results = [r for r in results if (not np.isnan(r.get("Price", np.nan))) and (r["Price"] <= float(budget))]
-            results.sort(key=lambda r: (-r["Score"], r["Dist"]))
-            top5 = results[:5]
+            if price_col and not np.isnan(budget):
+                df["_diff_budget"] = (df[price_col].astype(float) - float(budget)).abs()
+                df_sorted = df.sort_values("_diff_budget", ascending=True)
+            elif area_col:
+                df_sorted = df.sort_values(area_col, ascending=False)
+            else:
+                QtWidgets.QMessageBox.warning(self, "Thiếu cột", "Dữ liệu hiện tại không hỗ trợ xếp hạng kết quả")
+                df_sorted = df.copy()
 
-            # Hiển thị bảng
+            top = df_sorted.head(10)
             table = self.ui.table_recommendation
             table.clearContents()
-            table.setRowCount(len(top5))
-            for i, r in enumerate(top5):
-                code = f"P{int(r['ID']):05d}"
-                item_code = QtWidgets.QTableWidgetItem(code)
-                item_code.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                table.setItem(i, 0, item_code)
-
-                item_price = QtWidgets.QTableWidgetItem(f"{r['Price']:,.0f}" if not np.isnan(r['Price']) else "")
+            table.setRowCount(len(top))
+            for i in range(len(top)):
+                p = top.iloc[i][price_col] if price_col else np.nan
+                a = top.iloc[i][area_col] if area_col else np.nan
+                b = top.iloc[i][bedrooms_col] if bedrooms_col else np.nan
+                f = top.iloc[i][floors_col] if floors_col else np.nan
+                fr = top.iloc[i][frontage_col] if frontage_col else np.nan
+                ci = top.iloc[i][city_col] if city_col else ""
+                item_price = QtWidgets.QTableWidgetItem(f"{float(p):,.0f}" if not pd.isna(p) else "")
                 item_price.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-                table.setItem(i, 1, item_price)
-
-                item_area = QtWidgets.QTableWidgetItem(f"{r['Area']:,.2f}" if not np.isnan(r['Area']) else "")
+                table.setItem(i, 0, item_price)
+                item_area = QtWidgets.QTableWidgetItem(f"{float(a):,.2f}" if not pd.isna(a) else "")
                 item_area.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-                table.setItem(i, 2, item_area)
-
-                item_floor = QtWidgets.QTableWidgetItem(str(int(r.get("Floor", 1))))
-                item_floor.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                table.setItem(i, 3, item_floor)
-
-                cos = r.get("Cos", None)
-                cos_str = f"{float(cos)*100:.2f}%" if (cos is not None and np.isfinite(cos)) else ""
-                item_cos = QtWidgets.QTableWidgetItem(cos_str)
-                item_cos.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                table.setItem(i, 4, item_cos)
-
-                item_region = QtWidgets.QTableWidgetItem(str(r["Region"]))
-                table.setItem(i, 5, item_region)
-
-                item_type = QtWidgets.QTableWidgetItem(str(r["Type"]))
-                table.setItem(i, 6, item_type)
+                table.setItem(i, 1, item_area)
+                item_bed = QtWidgets.QTableWidgetItem(str(int(float(b))) if not pd.isna(b) else "")
+                item_bed.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                table.setItem(i, 2, item_bed)
+                item_floors = QtWidgets.QTableWidgetItem(str(int(float(f))) if not pd.isna(f) else "")
+                item_floors.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                table.setItem(i, 3, item_floors)
+                item_front = QtWidgets.QTableWidgetItem(f"{float(fr):,.2f}" if not pd.isna(fr) else "")
+                item_front.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                table.setItem(i, 4, item_front)
+                item_city = QtWidgets.QTableWidgetItem(str(ci) if not pd.isna(ci) else "")
+                table.setItem(i, 5, item_city)
             table.resizeColumnsToContents()
             try:
                 vh = table.verticalHeader()

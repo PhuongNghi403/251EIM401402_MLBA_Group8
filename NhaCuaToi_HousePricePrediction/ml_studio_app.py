@@ -780,23 +780,12 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             names = [r[0] for r in results]
             rmses = [r[1] for r in results]
             x = np.arange(len(names))
-            # Tạo bảng màu đa dạng (thân thiện cả dark/light theme)
-            base_palette_light = [
-                
-                "#fb8500", "#6a4c93", "#b56576", "#3a86ff", "#8338ec",
-                "#ff006e", "#ffbe0b", "#00afb9", "#06d6a0", "#ffd166",
-            ]
-            base_palette_dark = [
-                "#93c0ff", "#a86fd6", "#cbbef5", "#b68cff", "#67d1fb",
-                "#5b4f85", "#ffd166", "#06d6a0", "#ef476f", "#118ab2",
-                "#ffb703", "#8ecae6", "#e07a5f", "#81b29a", "#f2cc8f",
-            ]
-            palette = base_palette_dark if self._theme_mode == "dark" else base_palette_light
+            # Màu sắc theo yêu cầu UX: model được chọn màu đỏ, phần còn lại màu hồng
+            selected_color = "#B40F12"  # đỏ
+            default_color = "#FFC0CB"   # hồng
             colors = []
             for i, n in enumerate(names):
-                c = palette[i % len(palette)]
-                if selected_name and n == selected_name:
-                    c = "#B40F12"  # nổi bật model đang chọn
+                c = selected_color if (selected_name and n == selected_name) else default_color
                 colors.append(c)
             self.ax_compare.bar(x, rmses, color=colors, edgecolor="#333333", alpha=0.95)
             self.ax_compare.set_xticks(x)
@@ -834,9 +823,9 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         name = item.text().strip()
         cached = self.train_results_cache.get(name)
         model_obj = self.models_cache.get(name)
-        if not cached or model_obj is None:
-            return
-        self._draw_model_details_inline(name, model_obj, cached.get("results_df"), cached.get("feature_names", []))
+        if cached and model_obj is not None:
+            self._draw_model_details_inline(name, model_obj, cached.get("results_df"), cached.get("feature_names", []))
+        # Luôn highlight model được double-click trên biểu đồ
         self.selected_compare_model = name
         self.plot_comparison_chart(self.compare_results_store, selected_name=name)
 
@@ -1017,7 +1006,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self._error(f"Prediction error: {e}")
             return
 
-        self.ui.lbl_prediction_result.setText(f"{pred:,.2f}")
+        self.ui.lbl_prediction_result.setText(f"{pred:,.2f} (Million USD)")
         self.save_to_history(
             input_data={req_names[i]: vals[i] for i in range(len(req_names))},
             result=pred,
@@ -1439,6 +1428,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             except Exception:
                 pass
             try:
+                self.ui.combo_set_default_model.blockSignals(True)
                 self.ui.combo_set_default_model.clear()
                 for s in list(state.get("combo_default_items", [])):
                     self.ui.combo_set_default_model.addItem(str(s))
@@ -1447,12 +1437,31 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                     idx = self.ui.combo_set_default_model.findText(dm)
                     if idx >= 0:
                         self.ui.combo_set_default_model.setCurrentIndex(idx)
-                    try:
-                        self.model_default_name = dm
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                        try:
+                            self.model_default_name = dm
+                            import os, pickle, json
+                            data_dir = os.path.join(os.path.dirname(__file__), "data")
+                            pkl_path = os.path.join(data_dir, "official_model.pkl")
+                            if os.path.isfile(pkl_path):
+                                with open(pkl_path, "rb") as f:
+                                    self.model_default = pickle.load(f)
+                                feats = list(getattr(self.model_default, "feature_names_in_", []))
+                                if not feats or len(feats) != 5:
+                                    meta_path = os.path.join(data_dir, "official_model_meta.json")
+                                    if os.path.isfile(meta_path):
+                                        with open(meta_path, "r", encoding="utf-8") as mf:
+                                            meta = json.load(mf)
+                                        feats = list(meta.get("feature_names", []))
+                                if not feats or len(feats) != 5:
+                                    feats = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
+                                self.feature_names = feats
+                        except Exception:
+                            pass
+            finally:
+                try:
+                    self.ui.combo_set_default_model.blockSignals(False)
+                except Exception:
+                    pass
             try:
                 labels = state.get("model_labels", {})
                 if hasattr(self.ui, "lbl_current_model"):
@@ -1469,25 +1478,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                     self.ui.txt_model_metrics.setPlainText(txt)
             except Exception:
                 pass
-            """try:
-                rows = list(state.get("table_model_comparison", []))
-                tbl = self.ui.table_model_comparison
-                tbl.setRowCount(0)
-                tbl.setColumnCount(4)
-                tbl.setHorizontalHeaderLabels(["Model", "MAE", "RMSE", "R²"])
-                for row in rows:
-                    r = tbl.rowCount()
-                    tbl.insertRow(r)
-                    tbl.setItem(r, 0, QTableWidgetItem(str(row.get("Model", ""))))
-                    tbl.setItem(r, 1, QTableWidgetItem(str(row.get("MAE", ""))))
-                    tbl.setItem(r, 2, QTableWidgetItem(str(row.get("RMSE", ""))))
-                    tbl.setItem(r, 3, QTableWidgetItem(str(row.get("R²", ""))))
-                tbl.resizeColumnsToContents()
-                self.selected_compare_model = str(state.get("selected_compare_model", "")) or None
-                self.compare_results_store = [(str(r.get("Model", "")), float(str(r.get("RMSE", "0") or 0))) for r in rows if r]
-                self.plot_comparison_chart(self.compare_results_store, selected_name=self.selected_compare_model)
-            except Exception:
-                pass"""
+            
         except Exception:
             pass
 
