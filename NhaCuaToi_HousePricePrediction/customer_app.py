@@ -28,6 +28,14 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             QtCore.QTimer.singleShot(0, lambda: self.ui.tabWidget.setCurrentIndex(0))
         except Exception:
             pass
+        try:
+            self._apply_icons()
+        except Exception:
+            pass
+        try:
+            self._apply_tab_titles_plain()
+        except Exception:
+            pass
         # Khởi tạo dữ liệu lịch sử trước khi mixin dùng
         self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         PredictionLogicMixin.__init__(self)
@@ -208,6 +216,153 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
                 except Exception:
                     pass
                 self.canvas_city_map.draw_idle()
+        except Exception:
+            pass
+
+    def _load_icon(self, name: str, fallback: QtWidgets.QStyle.StandardPixmap):
+        icon_path = os.path.join(os.path.dirname(__file__), "UI", "icons", name)
+        if os.path.isfile(icon_path):
+            return QtGui.QIcon(icon_path)
+        return self.style().standardIcon(fallback)
+
+    def _mono_icon(self, kind: str, size: int = 22, color: str = "#2b2342"):
+        pm = QtGui.QPixmap(size, size)
+        pm.fill(QtCore.Qt.GlobalColor.transparent)
+        p = QtGui.QPainter(pm)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        pen = QtGui.QPen(QtGui.QColor(color))
+        pen.setWidth(2)
+        p.setPen(pen)
+        if kind == "predict":
+            # trục và đường biểu đồ tăng
+            p.drawLine(3, size - 4, size - 3, size - 4)  # trục X
+            p.drawLine(3, size - 4, 3, 4)              # trục Y
+            path = QtGui.QPainterPath()
+            path.moveTo(4, size - 6)
+            path.lineTo(size // 2 - 2, size // 2)
+            path.lineTo(size - 5, 6)
+            p.drawPath(path)
+        elif kind == "history":
+            # đồng hồ tối giản
+            p.drawEllipse(4, 4, size - 8, size - 8)
+            cx = size // 2
+            cy = size // 2
+            p.drawLine(cx, cy, cx, 7)        # kim phút
+            p.drawLine(cx, cy, cx + 5, cy)   # kim giờ
+        elif kind == "map":
+            # ghim vị trí
+            cx = size / 2
+            cy = size / 2 - 2
+            p.drawEllipse(int(cx - 4), int(cy - 4), 8, 8)
+            poly = QtGui.QPolygon([
+                QtCore.QPoint(int(cx), int(cy + 6)),
+                QtCore.QPoint(int(cx - 4), size - 4),
+                QtCore.QPoint(int(cx + 4), size - 4),
+            ])
+            p.drawPolygon(poly)
+        elif kind == "recommend":
+            # checklist tối giản
+            p.drawRect(5, 4, size - 10, size - 8)
+            p.drawLine(8, 9, size - 8, 9)
+            p.drawLine(8, 13, size - 8, 13)
+            p.drawLine(8, 17, size - 8, 17)
+            # dấu tick
+            tick = QtGui.QPainterPath()
+            tick.moveTo(6, 12)
+            tick.lineTo(8, 14)
+            tick.lineTo(12, 10)
+            p.drawPath(tick)
+        elif kind == "chatbot":
+            p.drawRoundedRect(4, 5, size - 8, size - 10, 4, 4)
+            p.drawLine(8, size - 5, 12, size - 1)
+            p.drawLine(12, size - 1, 14, size - 5)
+        elif kind == "exportcsv":
+            p.drawRect(4, 4, size - 8, size - 8)
+            p.drawLine(6, 8, size - 6, 8)
+            p.drawLine(6, 11, size - 6, 11)
+            p.drawLine(6, 14, size - 6, 14)
+        elif kind == "exportpdf":
+            p.drawRect(4, 4, size - 8, size - 8)
+            p.drawLine(6, 8, size - 10, 8)
+            p.drawLine(6, 12, size - 10, 12)
+        elif kind == "logout":
+            p.drawRect(4, 4, size - 12, size - 8)
+            p.drawLine(size - 8, 6, size - 4, 6)
+            p.drawLine(size - 8, 10, size - 4, 10)
+            p.drawLine(size - 4, 8, size - 1, 8)
+        elif kind == "theme":
+            p.drawEllipse(5, 5, size - 10, size - 10)
+        elif kind == "play":
+            poly = QtGui.QPolygon([QtCore.QPoint(6, 5), QtCore.QPoint(size - 6, size // 2), QtCore.QPoint(6, size - 5)])
+            p.drawPolygon(poly)
+        else:
+            p.drawEllipse(5, 5, size - 10, size - 10)
+        p.end()
+        return QtGui.QIcon(pm)
+
+    def _apply_icons(self):
+        s = self.style()
+        try:
+            if hasattr(self.ui, "btn_toggle_theme"):
+                self.ui.btn_toggle_theme.setIcon(self._mono_icon("theme"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "btn_logout"):
+                self.ui.btn_logout.setIcon(self._mono_icon("logout"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "btn_export_csv"):
+                self.ui.btn_export_csv.setIcon(self._mono_icon("exportcsv"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "btn_export_pdf"):
+                self.ui.btn_export_pdf.setIcon(self._mono_icon("exportpdf"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "btn_rec_export_csv"):
+                self.ui.btn_rec_export_csv.setIcon(self._mono_icon("exportcsv"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "btn_rec_export_pdf"):
+                self.ui.btn_rec_export_pdf.setIcon(self._mono_icon("exportpdf"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "btn_start_chatbot"):
+                self.ui.btn_start_chatbot.setIcon(self._mono_icon("play"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self.ui, "tabWidget"):
+                try:
+                    self.ui.tabWidget.setIconSize(QtCore.QSize(24, 24))
+                except Exception:
+                    pass
+                img_root = os.path.join(os.path.dirname(__file__), "images")
+                def icon_from(name, kind):
+                    p = os.path.join(img_root, name)
+                    if os.path.isfile(p):
+                        return QtGui.QIcon(p)
+                    return self._mono_icon(kind)
+                self.ui.tabWidget.setTabIcon(0, icon_from("PricePrediction.png", "predict"))
+                self.ui.tabWidget.setTabIcon(1, icon_from("History.png", "history"))
+                self.ui.tabWidget.setTabIcon(2, icon_from("Map.png", "map"))
+                self.ui.tabWidget.setTabIcon(3, icon_from("Recommend.png", "recommend"))
+                self.ui.tabWidget.setTabIcon(4, icon_from("Chatbot.png", "chatbot"))
+        except Exception:
+            pass
+
+    def _apply_tab_titles_plain(self):
+        try:
+            tw = self.ui.tabWidget
+            names = ["Price Prediction", "Prediction History", "Map", "Recommendation", "Chatbot"]
+            for idx in range(min(tw.count(), len(names))):
+                tw.setTabText(idx, names[idx])
         except Exception:
             pass
 

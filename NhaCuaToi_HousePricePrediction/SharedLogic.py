@@ -2,7 +2,7 @@ from typing import Optional, Dict, Tuple, List
 import time
 import numpy as np
 import pandas as pd
-from PyQt6 import QtWidgets
+from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtWidgets import QTableWidgetItem, QVBoxLayout, QFileDialog, QMessageBox
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -268,7 +268,20 @@ class PredictionLogicMixin:
         for r in range(len(df)):
             for c, col in enumerate(["Time", "Input Summary", "Predicted Price", "Model"]):
                 table.setItem(r, c, QTableWidgetItem(str(df.iloc[r][col])))
-        table.resizeColumnsToContents()
+        try:
+            table.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+        except Exception:
+            pass
+        try:
+            hdr = table.horizontalHeader()
+            hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            hdr.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            table.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.plot_history_trend()
 
     def plot_history_trend(self):
