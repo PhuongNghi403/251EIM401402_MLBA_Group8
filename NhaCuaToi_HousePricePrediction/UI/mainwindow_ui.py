@@ -59,7 +59,7 @@ class Ui_MainWindow(object):
         # Group 1: Config
         self.group_dataset_config = QtWidgets.QGroupBox(parent=self.tab_dataset)
         self.group_dataset_config.setObjectName("group_dataset_config")
-        self.group_dataset_config.setTitle("1. Tải Dữ liệu & Cấu hình")
+        self.group_dataset_config.setTitle("Load Dataset & Config")
         self.gridLayout_dataset_config = QtWidgets.QGridLayout(self.group_dataset_config)
         self.gridLayout_dataset_config.setObjectName("gridLayout_dataset_config")
 
@@ -95,7 +95,7 @@ class Ui_MainWindow(object):
 
         self.btn_load_and_train = QtWidgets.QPushButton(parent=self.group_dataset_config)
         self.btn_load_and_train.setObjectName("btn_load_and_train")
-        self.btn_load_and_train.setText("Load & Train")
+        self.btn_load_and_train.setText("Load and Train")
         self.btn_load_and_train.setSizePolicy(sizeFixed)
         self.gridLayout_dataset_config.addWidget(self.btn_load_and_train, 1, 2, 1, 1)
 
@@ -106,7 +106,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_tab1.addWidget(self.group_dataset_config)
 
         self.group_dataset_preview = QtWidgets.QGroupBox(parent=self.tab_dataset)
-        self.group_dataset_preview.setTitle("2. Xem trước Dữ liệu")
+        self.group_dataset_preview.setTitle("Preview Dataset")
         self.verticalLayout_preview = QtWidgets.QVBoxLayout(self.group_dataset_preview)
         self.verticalLayout_preview.setObjectName("verticalLayout_preview")
 
@@ -138,7 +138,7 @@ class Ui_MainWindow(object):
         self.hbox_train_results = QtWidgets.QHBoxLayout(self.tab_train_results)
 
         self.group_model_metrics = QtWidgets.QGroupBox(parent=self.tab_train_results)
-        self.group_model_metrics.setTitle("Thông số Mô hình (Default: Linear Regression)")
+        self.group_model_metrics.setTitle("Model Metrics (Default: Linear Regression)")
         self.vbox_metrics = QtWidgets.QVBoxLayout(self.group_model_metrics)
 
         self.txt_model_metrics = QtWidgets.QTextEdit(parent=self.group_model_metrics)
@@ -148,13 +148,13 @@ class Ui_MainWindow(object):
         self.vbox_metrics.addWidget(self.txt_model_metrics)
 
         self.btn_save_model = QtWidgets.QPushButton(parent=self.group_model_metrics)
-        self.btn_save_model.setText("Lưu Model này")
+        self.btn_save_model.setText("Save Model")
         self.btn_save_model.setSizePolicy(sizeFixed)
         self.vbox_metrics.addWidget(self.btn_save_model)
 
         self.label_trained_models = QtWidgets.QLabel(parent=self.group_model_metrics)
         self.label_trained_models.setObjectName("label_trained_models")
-        self.label_trained_models.setText("Chọn model đã huấn luyện:")
+        self.label_trained_models.setText("Select Trained Model:")
         self.vbox_metrics.addWidget(self.label_trained_models)
 
         self.combo_trained_models = QtWidgets.QComboBox(parent=self.group_model_metrics)
@@ -183,7 +183,7 @@ class Ui_MainWindow(object):
         self.hbox_train_results.setStretch(0, 1)
         self.hbox_train_results.setStretch(1, 2)
 
-        self.tabWidget.addTab(self.tab_train_results, "Kết quả Huấn luyện")
+        self.tabWidget.addTab(self.tab_train_results, "Train Results")
 
         # --- Tab 3: So sánh Model ---
         self.tab_model_compare = QtWidgets.QWidget()
@@ -212,7 +212,7 @@ class Ui_MainWindow(object):
         self.hbox_compare.addWidget(self.group_run_select_model)
 
         self.group_analysis_charts = QtWidgets.QGroupBox(parent=self.tab_model_compare)
-        self.group_analysis_charts.setTitle("Biểu đồ Phân tích")
+        self.group_analysis_charts.setTitle("Analysis Charts")
         self.vbox_analysis_charts = QtWidgets.QVBoxLayout(self.group_analysis_charts)
         self.analysis_scroll_area = QtWidgets.QScrollArea(parent=self.group_analysis_charts)
         self.analysis_scroll_area.setObjectName("analysis_scroll_area")
@@ -226,7 +226,7 @@ class Ui_MainWindow(object):
         self.vbox_analysis_scroll = QtWidgets.QVBoxLayout(self.analysis_scroll_contents)
 
         self.group_chart_compare = QtWidgets.QGroupBox(parent=self.analysis_scroll_contents)
-        self.group_chart_compare.setTitle("Biểu đồ So sánh MAE/RMSE")
+        self.group_chart_compare.setTitle("Model Comparison Charts")
         self.vbox_chart_compare = QtWidgets.QVBoxLayout(self.group_chart_compare)
         self.group_chart_compare.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
         self.group_chart_compare.setMinimumHeight(280)
@@ -240,7 +240,7 @@ class Ui_MainWindow(object):
         self.vbox_analysis_scroll.addWidget(self.group_chart_compare)
 
         self.group_chart_residuals = QtWidgets.QGroupBox(parent=self.analysis_scroll_contents)
-        self.group_chart_residuals.setTitle("Biểu đồ Phân tích chi tiết (Model chọn)")
+        self.group_chart_residuals.setTitle("Detailed Analysis Charts (Selected Model)")
         self.vbox_chart_residuals = QtWidgets.QVBoxLayout(self.group_chart_residuals)
         self.group_chart_residuals.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
         self.group_chart_residuals.setMinimumHeight(800)
@@ -268,14 +268,14 @@ class Ui_MainWindow(object):
         self.vbox_analysis_charts.addWidget(self.analysis_scroll_area)
 
         self.btn_open_city_price_map = QtWidgets.QPushButton(parent=self.group_analysis_charts)
-        self.btn_open_city_price_map.setText("Mở bản đồ giá theo tỉnh thành")
+        self.btn_open_city_price_map.setText("Open City Price Map")
         self.vbox_analysis_charts.addWidget(self.btn_open_city_price_map)
 
         self.hbox_compare.addWidget(self.group_analysis_charts)
         self.hbox_compare.setStretch(0, 1)
         self.hbox_compare.setStretch(1, 3)
 
-        self.tabWidget.addTab(self.tab_model_compare, "So sánh Model")
+        self.tabWidget.addTab(self.tab_model_compare, "Model Comparison")
 
         # --- Tab 4: Dự đoán Giá ---
         self.tab_predict = QtWidgets.QWidget()
@@ -283,7 +283,7 @@ class Ui_MainWindow(object):
         self.hbox_predict = QtWidgets.QHBoxLayout(self.tab_predict)
 
         self.group_input_house = QtWidgets.QGroupBox(parent=self.tab_predict)
-        self.group_input_house.setTitle("Nhập thông tin nhà")
+        self.group_input_house.setTitle("Input House Information")
         self.formLayout_inputs = QtWidgets.QFormLayout(self.group_input_house)
 
         self.label_area = QtWidgets.QLabel(parent=self.group_input_house)
@@ -334,7 +334,7 @@ class Ui_MainWindow(object):
         self.hbox_predict.addWidget(self.group_input_house)
 
         self.group_predict_actions = QtWidgets.QGroupBox(parent=self.tab_predict)
-        self.group_predict_actions.setTitle("Kết quả & Tác vụ")
+        self.group_predict_actions.setTitle("Prediction Results & Actions")
         self.vbox_predict_actions = QtWidgets.QVBoxLayout(self.group_predict_actions)
         # Hàng chọn model mặc định đặt lên đầu và thu gọn khoảng cách
         self.hbox_default_model = QtWidgets.QHBoxLayout()
@@ -350,7 +350,7 @@ class Ui_MainWindow(object):
         self.vbox_predict_actions.addLayout(self.hbox_default_model)
 
         self.group_current_model = QtWidgets.QGroupBox(parent=self.group_predict_actions)
-        self.group_current_model.setTitle("Thông tin Model Đang Dùng")
+        self.group_current_model.setTitle("Current Model Information")
         self.vbox_current_model = QtWidgets.QVBoxLayout(self.group_current_model)
         self.lbl_current_model = QtWidgets.QLabel(parent=self.group_current_model)
         self.lbl_current_model.setText("Model:")
@@ -363,28 +363,42 @@ class Ui_MainWindow(object):
         self.vbox_current_model.addWidget(self.lbl_current_model_rmse)
         self.vbox_predict_actions.addWidget(self.group_current_model)
 
-        self.btn_quick_evaluate = QtWidgets.QPushButton(parent=self.group_predict_actions)
-        self.btn_quick_evaluate.setText("Đánh giá nhanh")
-        self.btn_quick_evaluate.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
-        self.vbox_predict_actions.addWidget(self.btn_quick_evaluate)
 
-        self.btn_predict = QtWidgets.QPushButton(parent=self.group_predict_actions)
+        # Group: Quick Prediction (contains Predict button and caption label)
+        self.group_quick_predict = QtWidgets.QGroupBox(parent=self.group_predict_actions)
+        self.group_quick_predict.setTitle("Quick Prediction")
+        # Giới hạn chiều cao để group box gọn gàng và không nở quá lớn
+        self.group_quick_predict.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
+        self.group_quick_predict.setMaximumHeight(200)
+        self.vbox_quick_predict = QtWidgets.QVBoxLayout(self.group_quick_predict)
+        self.vbox_quick_predict.setContentsMargins(8, 6, 8, 6)
+        self.vbox_quick_predict.setSpacing(8)
+
+        self.btn_predict = QtWidgets.QPushButton(parent=self.group_quick_predict)
         self.btn_predict.setText("Predict Price")
         self.btn_predict.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
-        self.vbox_predict_actions.addWidget(self.btn_predict)
+        self.vbox_quick_predict.addWidget(self.btn_predict)
 
-        self.label_pred_price = QtWidgets.QLabel(parent=self.group_predict_actions)
+        self.label_pred_price = QtWidgets.QLabel(parent=self.group_quick_predict)
+        font_caption = QtGui.QFont()
+        font_caption.setPointSize(11)
+        font_caption.setBold(True)
+        self.label_pred_price.setFont(font_caption)
         self.label_pred_price.setText("Predicted Price:")
-        self.vbox_predict_actions.addWidget(self.label_pred_price)
+        self.label_pred_price.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.vbox_quick_predict.addWidget(self.label_pred_price)
 
-        self.lbl_prediction_result = QtWidgets.QLabel(parent=self.group_predict_actions)
+        self.vbox_predict_actions.addWidget(self.group_quick_predict)
+
+        self.lbl_prediction_result = QtWidgets.QLabel(parent=self.group_quick_predict)
         font = QtGui.QFont()
         font.setPointSize(24)
         font.setBold(True)
         self.lbl_prediction_result.setFont(font)
         self.lbl_prediction_result.setText("...")
         self.lbl_prediction_result.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
-        self.vbox_predict_actions.addWidget(self.lbl_prediction_result)
+        self.lbl_prediction_result.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.vbox_quick_predict.addWidget(self.lbl_prediction_result)
 
         self.btn_export_report = QtWidgets.QPushButton(parent=self.group_predict_actions)
         self.btn_export_report.setText("Export Report (CSV)")
@@ -409,7 +423,7 @@ class Ui_MainWindow(object):
         self.hbox_predict.setStretch(0, 1)
         self.hbox_predict.setStretch(1, 2)
 
-        self.tabWidget.addTab(self.tab_predict, "Dự đoán Giá")
+        self.tabWidget.addTab(self.tab_predict, "Price Prediction")
 
         # --- Tab 5: Lịch sử Dự đoán ---
         self.tab_history = QtWidgets.QWidget()

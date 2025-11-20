@@ -88,14 +88,20 @@ class LoginDialog(QDialog):
         return self.role_combo.currentText().strip() or "customer"
 
     def _on_role_changed(self, text: str):
-        if text.strip().lower() == "customer":
-            self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-            if not self.password_edit.text():
-                self.password_edit.setText("customer")
-        else:
-            self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        role = (text or "").strip().lower()
+        self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        if role == "admin":
+            # Hiện sẵn thông tin đăng nhập cho admin
+            if not self.username_edit.text():
+                self.username_edit.setText("admin")
             if not self.password_edit.text():
                 self.password_edit.setText("admin")
+        else:
+            # Hiện sẵn thông tin đăng nhập cho customer
+            if not self.username_edit.text():
+                self.username_edit.setText("customer")
+            if not self.password_edit.text():
+                self.password_edit.setText("123")
 
 
 # class MainWindow: thêm kế thừa Mixin và khởi tạo mixin
@@ -231,8 +237,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         if hasattr(self.ui, "btn_logout"):
             self.ui.btn_logout.clicked.connect(self.slot_logout)
 
-        if hasattr(self.ui, "btn_quick_evaluate"):
-            self.ui.btn_quick_evaluate.clicked.connect(self.slot_quick_evaluate)
+        # Removed Quick Evaluate button; no signal connection
         if hasattr(self.ui, "btn_open_house_input_form"):
             self.ui.btn_open_house_input_form.clicked.connect(self.slot_open_house_input_form)
         if hasattr(self.ui, "combo_trained_models"):
@@ -704,8 +709,25 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             names = [r[0] for r in results]
             rmses = [r[1] for r in results]
             x = np.arange(len(names))
-            colors = [("#FFC107" if selected_name and n == selected_name else self.compare_bar_color) for n in names]
-            self.ax_compare.bar(x, rmses, color=colors)
+            # Tạo bảng màu đa dạng (thân thiện cả dark/light theme)
+            base_palette_light = [
+                
+                "#fb8500", "#6a4c93", "#b56576", "#3a86ff", "#8338ec",
+                "#ff006e", "#ffbe0b", "#00afb9", "#06d6a0", "#ffd166",
+            ]
+            base_palette_dark = [
+                "#93c0ff", "#a86fd6", "#cbbef5", "#b68cff", "#67d1fb",
+                "#5b4f85", "#ffd166", "#06d6a0", "#ef476f", "#118ab2",
+                "#ffb703", "#8ecae6", "#e07a5f", "#81b29a", "#f2cc8f",
+            ]
+            palette = base_palette_dark if self._theme_mode == "dark" else base_palette_light
+            colors = []
+            for i, n in enumerate(names):
+                c = palette[i % len(palette)]
+                if selected_name and n == selected_name:
+                    c = "#B40F12"  # nổi bật model đang chọn
+                colors.append(c)
+            self.ax_compare.bar(x, rmses, color=colors, edgecolor="#333333", alpha=0.95)
             self.ax_compare.set_xticks(x)
             self.ax_compare.set_xticklabels(names, rotation=20, ha='right', fontsize=8, color=text_color)
             self.ax_compare.set_ylabel("RMSE", fontsize=10)
@@ -793,7 +815,20 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             imp_vals = [0.0] * len(imp_names)
         self.ax_importance.clear()
         x = np.arange(len(imp_names))
-        self.ax_importance.bar(x, imp_vals, color=bar_color)
+        # Màu thanh đa dạng cho biểu đồ độ quan trọng đặc trưng
+        palette_light = [
+            "#8ecae6", "#219ebc", "#bde0fe", "#a2d2ff", "#ffb703",
+            "#fb8500", "#6a4c93", "#b56576", "#3a86ff", "#8338ec",
+            "#ff006e", "#ffbe0b", "#00afb9", "#06d6a0", "#ffd166",
+        ]
+        palette_dark = [
+            "#93c0ff", "#a86fd6", "#cbbef5", "#b68cff", "#67d1fb",
+            "#5b4f85", "#ffd166", "#06d6a0", "#ef476f", "#118ab2",
+            "#ffb703", "#8ecae6", "#e07a5f", "#81b29a", "#f2cc8f",
+        ]
+        pal = palette_dark if getattr(self, "_theme_mode", "light") == "dark" else palette_light
+        colors = [pal[i % len(pal)] for i in range(len(imp_names))]
+        self.ax_importance.bar(x, imp_vals, color=colors, edgecolor="#333333", alpha=0.95)
         self.ax_importance.set_xticks(x)
         self.ax_importance.set_xticklabels(imp_names, rotation=20, ha='right', fontsize=8)
         self.ax_importance.set_ylabel("Importance", fontsize=10)
@@ -802,14 +837,28 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.canvas_importance.draw_idle()
 
     def slot_open_city_price_map(self):
-        path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_with_20_Random_Cities.csv")
-        if not os.path.isfile(path):
-            path = r"e:\251EIM401402_MLBA_Group8\NhaCuaToi_HousePricePrediction\data\SuperCleaned_with_20_Random_Cities.csv"
+        
+        path = ""
         try:
-            df = pd.read_csv(path)
-        except Exception as e:
-            self._error(f"Không thể đọc dữ liệu bản đồ: {e}")
+            if hasattr(self.ui, "combo_dataset"):
+                path = self.ui.combo_dataset.currentText().strip()
+        except Exception:
+            path = ""
+
+        df = None
+        if path and os.path.isfile(path):
+            try:
+                df = pd.read_csv(path)
+            except Exception as e:
+                self._error(f"Can not read dataset file: {e}")
+                return
+        elif self.df is not None:
+            # Nếu dữ liệu đã được load trong bộ nhớ, dùng trực tiếp
+            df = self.df.copy()
+        else:
+            self._error("Select dataset first.")
             return
+
         CityPriceMapDialog.open_with_df(self, df, getattr(self, "_theme_mode", "light"), self.compare_bar_color)
 
     def slot_set_default_model(self):
@@ -1321,7 +1370,20 @@ class ModelDetailsDialog(QDialog):
             imp_vals = [0.0] * len(imp_names)
         self.ax3.clear()
         x = np.arange(len(imp_names))
-        self.ax3.bar(x, imp_vals, color=self.bar_color)
+        # Áp dụng bảng màu đa dạng cho bar
+        palette_light = [
+            "#8ecae6", "#219ebc", "#bde0fe", "#a2d2ff", "#ffb703",
+            "#fb8500", "#6a4c93", "#b56576", "#3a86ff", "#8338ec",
+            "#ff006e", "#ffbe0b", "#00afb9", "#06d6a0", "#ffd166",
+        ]
+        palette_dark = [
+            "#93c0ff", "#a86fd6", "#cbbef5", "#b68cff", "#67d1fb",
+            "#5b4f85", "#ffd166", "#06d6a0", "#ef476f", "#118ab2",
+            "#ffb703", "#8ecae6", "#e07a5f", "#81b29a", "#f2cc8f",
+        ]
+        pal = palette_dark if getattr(self, "theme_mode", "light") == "dark" else palette_light
+        colors = [pal[i % len(pal)] for i in range(len(imp_names))]
+        self.ax3.bar(x, imp_vals, color=colors, edgecolor="#333333", alpha=0.95)
         self.ax3.set_xticks(x)
         self.ax3.set_xticklabels(imp_names, rotation=0)
         self.ax3.set_ylabel("Importance")
@@ -1331,7 +1393,7 @@ class ModelDetailsDialog(QDialog):
 class CityPriceMapDialog(QDialog):
     def __init__(self, parent, df: pd.DataFrame, theme_mode: str, bar_color: str):
         super().__init__(parent)
-        self.setWindowTitle("So sánh giá nhà theo các tỉnh thành trong nước")
+        self.setWindowTitle("Price Comparision by City")
         self.theme_mode = theme_mode
         self.bar_color = bar_color
         layout = QVBoxLayout(self)
@@ -1474,13 +1536,13 @@ class CityPriceMapDialog(QDialog):
         for x, y, name in zip(xs, ys, names):
             self.ax.text(x + 0.1, y + 0.1, name, fontsize=9, color=self.text_color)
         cb = self.canvas.figure.colorbar(sc, ax=self.ax)
-        cb.set_label("Giá trung bình", color=self.text_color)
+        cb.set_label("Average Price", color=self.text_color)
         cb.ax.yaxis.set_tick_params(color=self.text_color)
         for lbl in cb.ax.get_yticklabels():
             lbl.set_color(self.text_color)
-        self.ax.set_xlabel("Kinh độ")
-        self.ax.set_ylabel("Vĩ độ")
-        self.ax.set_title("So sánh giá nhà theo các tỉnh thành trong nước")
+        self.ax.set_xlabel("Longitude")
+        self.ax.set_ylabel("Latitude")
+        self.ax.set_title("Comparison of House Prices by City")
         self._points_data = {"xs": xs, "ys": ys, "names": names, "actuals": actuals, "preds": preds}
         self.annot = self.ax.annotate("", xy=(0, 0), xytext=(10, 10), textcoords="offset points", bbox=dict(boxstyle="round", fc="#fff8dc", ec="k", alpha=0.9))
         self.annot.set_visible(False)
@@ -1512,7 +1574,7 @@ class CityPriceMapDialog(QDialog):
         i = int(np.argmin(dists))
         if dists[i] < 20:
             self.annot.xy = (xs[i], ys[i])
-            txt = f"{names[i]}\nGiá thực tế: {actuals[i]:.4f}\nGiá dự đoán: {preds[i]:.4f}"
+            txt = f"{names[i]}\nActual Price: {actuals[i]:.4f}\nPredicted Price: {preds[i]:.4f}"
             self.annot.set_text(txt)
             fc = "#FFF59D" if self.theme_mode != "dark" else "#4a3976"
             ec = "#2b2342" if self.theme_mode != "dark" else "#FFFFFF"

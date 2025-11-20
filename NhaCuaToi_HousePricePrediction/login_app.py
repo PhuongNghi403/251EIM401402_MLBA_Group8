@@ -7,6 +7,14 @@ class LoginWindow(QWidget, Ui_Login):
         self.ui = Ui_Login()
         self.ui.setupUi(self)
         self.ui.btn_login.clicked.connect(self._on_login)
+        # Tự động điền username/password theo role được chọn
+        if hasattr(self.ui, "combo_role"):
+            self.ui.combo_role.currentTextChanged.connect(self._on_role_changed)
+            # Khởi tạo ngay lần đầu mở màn hình
+            try:
+                self._on_role_changed(self.ui.combo_role.currentText())
+            except Exception:
+                pass
 
     def _on_login(self):
         username = self.ui.txt_username.text().strip()

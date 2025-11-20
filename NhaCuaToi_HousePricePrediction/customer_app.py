@@ -740,13 +740,15 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
     def _render_city_map(self):
         if not hasattr(self, "ax_city_map"):
             return
-        path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_with_20_Random_Cities.csv")
-        if not os.path.isfile(path):
-            path = r"e:\251EIM401402_MLBA_Group8\NhaCuaToi_HousePricePrediction\data\SuperCleaned_with_20_Random_Cities.csv"
+        # Đồng bộ cách nạp dữ liệu với ml_studio_app: ưu tiên dùng self.df từ loader chung
         try:
-            df = pd.read_csv(path)
-        except Exception as e:
-            self._error(f"Không thể đọc dữ liệu bản đồ: {e}")
+            self._load_default_df_if_needed()
+        except Exception:
+            pass
+        df = getattr(self, "df", None)
+        if not isinstance(df, pd.DataFrame) or df.empty:
+            # Không dùng đường dẫn tuyệt đối; báo lỗi rõ ràng và gợi ý thư mục data
+            self._error("Không có dữ liệu để vẽ bản đồ. Vui lòng đặt CSV vào thư mục 'data' hoặc tải dữ liệu mặc định.")
             return
         ax = self.ax_city_map
         ax.clear()

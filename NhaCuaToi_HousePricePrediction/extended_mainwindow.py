@@ -161,8 +161,7 @@ class ExtendedMainWindow(QMainWindow):
         self.ui.combo_set_default_model.currentTextChanged.connect(self.slot_set_default_model)
         self.ui.btn_predict.clicked.connect(self.slot_predict)
         self.ui.btn_export_report.clicked.connect(self.slot_export_report)
-        if hasattr(self.ui, "btn_quick_evaluate"):
-            self.ui.btn_quick_evaluate.clicked.connect(self.slot_quick_evaluate)
+        # Quick Evaluate button has been removed from UI
         self.ui.btn_delete_history.clicked.connect(self.slot_delete_history)
         self.ui.btn_clear_history.clicked.connect(self.slot_clear_history)
         self.ui.btn_export_history.clicked.connect(self.slot_export_history)
