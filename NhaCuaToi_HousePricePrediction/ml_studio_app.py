@@ -159,7 +159,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
         # Initial draw for history tab (show message when empty)
         try:
+            self._load_persisted_history()
             self.refresh_history_tab()
+            try:
+                self.refresh_customer_history_tab()
+            except Exception:
+                pass
+        except Exception:
+            pass
+        try:
+            self._load_admin_ui_state()
         except Exception:
             pass
 
@@ -251,6 +260,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self.ui.btn_open_city_price_map.clicked.connect(self.slot_open_city_price_map)
         if hasattr(self.ui, "tabWidget"):
             self.ui.tabWidget.currentChanged.connect(self._on_tab_changed)
+        try:
+            self._init_customer_history_tab()
+            try:
+                self.btn_cust_delete_history.clicked.connect(self.slot_cust_delete_history)
+                self.btn_cust_clear_history.clicked.connect(self.slot_cust_clear_history)
+                self.btn_cust_export_history.clicked.connect(self.slot_cust_export_history)
+            except Exception:
+                pass
+        except Exception:
+            pass
 
     # --- Theme & Icons ---
     def _apply_theme(self, mode: str):
@@ -391,13 +410,19 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ax_history.yaxis.label.set_color(text_color)
         self.ax_history.title.set_color(text_color)
 
-        for canv, ax in [
+        pairs = [
             (self.canvas_compare, self.ax_compare),
             (self.canvas_history, self.ax_history),
             (self.canvas_actual, self.ax_actual),
             (self.canvas_resid, self.ax_resid),
             (self.canvas_importance, self.ax_importance),
-        ]:
+        ]
+        try:
+            if hasattr(self, "canvas_customer_history") and hasattr(self, "ax_customer_history"):
+                pairs.append((self.canvas_customer_history, self.ax_customer_history))
+        except Exception:
+            pass
+        for canv, ax in pairs:
             canv.figure.set_facecolor(fig_bg_color)
             ax.set_facecolor(ax_bg_color)
             ax.tick_params(colors=text_color, axis='x', labelsize=8)
@@ -482,6 +507,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.ui.combo_dataset.setCurrentIndex(idx)
         if hasattr(self.ui, "lbl_status_tab1"):
             self.ui.lbl_status_tab1.setText(f"Selected: {file_path}")
+        try:
+            self._save_admin_ui_state()
+        except Exception:
+            pass
 
     def slot_load_and_train(self):
         if self.current_role == "customer":
@@ -654,6 +683,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             table.setItem(r, 1, QTableWidgetItem(str(results_df.iloc[r, 1])))
             table.setItem(r, 2, QTableWidgetItem(str(results_df.iloc[r, 2])))
         table.resizeColumnsToContents()
+        try:
+            self._save_admin_ui_state()
+        except Exception:
+            pass
 
     # ---------- Tab 3: Model Comparison ----------
     def slot_evaluate_all_models(self):
@@ -699,6 +732,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         self.plot_comparison_chart(results_for_plot, selected_name=self.selected_compare_model)
         self.ui.txt_model_metrics.setPlainText("Completed model evaluation.")
         self._populate_trained_models_combo()
+        try:
+            self._save_admin_ui_state()
+        except Exception:
+            pass
 
     def plot_comparison_chart(self, results: List[Tuple[str, float]], selected_name: Optional[str] = None):
         self.ax_compare.clear()
@@ -870,9 +907,35 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self._error("Model not trained yet. Please evaluate all models first.")
             return
         self.model_default = model
-        QMessageBox.information(self, "Selected", f"Default model: {name}")
+        self.model_default_name = name
+        try:
+            data_dir = os.path.join(os.path.dirname(__file__), "data")
+            os.makedirs(data_dir, exist_ok=True)
+            out_path = os.path.join(data_dir, "official_model.pkl")
+            with open(out_path, "wb") as f:
+                pickle.dump(model, f)
+            # write meta for customer UI display
+            try:
+                import json
+                meta = {
+                    "name": name,
+                    "dataset_path": self.ui.combo_dataset.currentText().strip(),
+                    "feature_names": list(getattr(model, "feature_names_in_", [])) or self.feature_names,
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                }
+                with open(os.path.join(data_dir, "official_model_meta.json"), "w", encoding="utf-8") as mf:
+                    json.dump(meta, mf, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+            QMessageBox.information(self, "Publish", f"Model '{name}' has been published for Customer.")
+        except Exception as e:
+            self._error(f"Failed to publish model: {e}")
         try:
             self.update_current_model_info()
+        except Exception:
+            pass
+        try:
+            self._save_admin_ui_state()
         except Exception:
             pass
 
@@ -972,6 +1035,9 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self.display_train_results(self.models_cache.get(name), metrics, results_df)
 
     def _get_model_default_name(self) -> str:
+        n = getattr(self, "model_default_name", None)
+        if isinstance(n, str) and n.strip():
+            return n
         for name, obj in self.models_cache.items():
             if obj is self.model_default:
                 return name
@@ -984,6 +1050,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         new_row = {"Time": ts, "Input Summary": summary, "Predicted Price": result, "Model": model_name, "User": self.current_user or ""}
         self.history_df = pd.concat([self.history_df, pd.DataFrame([new_row])], ignore_index=True)
         self.refresh_history_tab()
+        try:
+            self._persist_history()
+        except Exception:
+            pass
 
     def refresh_history_tab(self):
         table = self.ui.table_history
@@ -1023,8 +1093,180 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             if hasattr(self.ui, "tab_history"):
                 if idx == self.ui.tabWidget.indexOf(self.ui.tab_history):
                     self.refresh_history_tab()
+            try:
+                if hasattr(self, "tab_customer_history") and self.ui.tabWidget.widget(idx) is self._scroll_container_for(self.tab_customer_history):
+                    self.refresh_customer_history_tab()
+            except Exception:
+                pass
         except Exception:
             pass
+
+    def _scroll_container_for(self, inner: QtWidgets.QWidget):
+        for i in range(self.ui.tabWidget.count()):
+            w = self.ui.tabWidget.widget(i)
+            try:
+                if isinstance(w, QtWidgets.QScrollArea) and w.widget() is inner:
+                    return w
+            except Exception:
+                pass
+        return inner
+
+    def _init_customer_history_tab(self):
+        self.tab_customer_history = QtWidgets.QWidget()
+        self.vbox_customer_history = QVBoxLayout(self.tab_customer_history)
+
+        self.group_cust_history_chart = QtWidgets.QGroupBox(self.tab_customer_history)
+        self.vbox_cust_history_chart = QVBoxLayout(self.group_cust_history_chart)
+        self.chart_view_customer_history = QtWidgets.QWidget(self.group_cust_history_chart)
+        self.vbox_cust_history_chart.addWidget(self.chart_view_customer_history)
+        self.canvas_customer_history, self.ax_customer_history = self._init_canvas_in(self.chart_view_customer_history)
+        self.vbox_customer_history.addWidget(self.group_cust_history_chart)
+
+        self.group_cust_history_details = QtWidgets.QGroupBox(self.tab_customer_history)
+        self.vbox_group_customer_history = QVBoxLayout(self.group_cust_history_details)
+        self.table_customer_history = QtWidgets.QTableWidget(self.group_cust_history_details)
+        self.table_customer_history.setColumnCount(4)
+        self.table_customer_history.setHorizontalHeaderLabels(["Time", "Input Summary", "Predicted Price", "Model"])
+        try:
+            hdr = self.table_customer_history.horizontalHeader()
+            hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            self.table_customer_history.verticalHeader().setVisible(False)
+        except Exception:
+            pass
+        self.vbox_group_customer_history.addWidget(self.table_customer_history)
+        self.vbox_customer_history.addWidget(self.group_cust_history_details)
+
+        self.group_cust_history_actions = QtWidgets.QGroupBox(self.tab_customer_history)
+        self.vbox_cust_history_actions = QVBoxLayout(self.group_cust_history_actions)
+        self.btn_cust_delete_history = QtWidgets.QPushButton(self.group_cust_history_actions)
+        self.btn_cust_clear_history = QtWidgets.QPushButton(self.group_cust_history_actions)
+        self.btn_cust_export_history = QtWidgets.QPushButton(self.group_cust_history_actions)
+        self.btn_cust_delete_history.setText("Delete Selected")
+        self.btn_cust_clear_history.setText("Clear All")
+        self.btn_cust_export_history.setText("Export History (CSV)")
+        self.vbox_cust_history_actions.addWidget(self.btn_cust_delete_history)
+        self.vbox_cust_history_actions.addWidget(self.btn_cust_clear_history)
+        self.vbox_cust_history_actions.addWidget(self.btn_cust_export_history)
+        self.vbox_customer_history.addWidget(self.group_cust_history_actions)
+
+        self.ui.tabWidget.addTab(self.tab_customer_history, "Customer's Prediction History")
+
+    def refresh_customer_history_tab(self):
+        try:
+            path = os.path.join(os.path.dirname(__file__), "data", "customer_prediction_history.csv")
+            if not os.path.isfile(path):
+                df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
+            else:
+                df = pd.read_csv(path)
+            table = self.table_customer_history
+            table.clearContents()
+            table.setRowCount(len(df))
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(["Time", "Input Summary", "Predicted Price", "Model"])
+            for r in range(len(df)):
+                for c, col in enumerate(["Time", "Input Summary", "Predicted Price", "Model"]):
+                    table.setItem(r, c, QTableWidgetItem(str(df.iloc[r][col]) if col in df.columns else ""))
+            try:
+                table.resizeColumnsToContents()
+            except Exception:
+                pass
+            try:
+                self.plot_customer_history_trend(df)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def plot_customer_history_trend(self, df: pd.DataFrame):
+        if not hasattr(self, "ax_customer_history") or not hasattr(self, "canvas_customer_history"):
+            return
+        self.ax_customer_history.clear()
+        text_color = "#FFFFFF" if getattr(self, "_theme_mode", "light") == "dark" else "#2b2342"
+        if not isinstance(df, pd.DataFrame) or df.empty:
+            self.ax_customer_history.text(0.5, 0.5, "No history yet", ha="center", va="center", color=text_color)
+        else:
+            try:
+                y = df["Predicted Price"].astype(float).values
+            except Exception:
+                y = []
+            x = np.arange(len(y)) if len(y) else np.arange(0)
+            self.ax_customer_history.plot(x, y, marker="o", color=self.history_line_color)
+            self.ax_customer_history.set_xlabel("Prediction #")
+            self.ax_customer_history.set_ylabel("Predicted Price")
+            self.ax_customer_history.set_title("Customer predicted price trend")
+            self.ax_customer_history.grid(True, linestyle="--", alpha=0.4)
+        self.canvas_customer_history.draw_idle()
+
+    def _customer_history_path(self) -> str:
+        return os.path.join(os.path.dirname(__file__), "data", "customer_prediction_history.csv")
+
+    def _write_customer_history(self, df: pd.DataFrame):
+        path = self._customer_history_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        df.to_csv(path, index=False)
+
+    def slot_cust_delete_history(self):
+        row = self.table_customer_history.currentRow()
+        path = self._customer_history_path()
+        if row < 0 or not os.path.isfile(path):
+            return
+        confirm = QMessageBox.question(self, "Confirm", "Delete selected customer record?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            df = pd.read_csv(path)
+        except Exception:
+            return
+        if df.empty:
+            return
+        cols = ["Time", "Input Summary", "Predicted Price", "Model"]
+        try:
+            sel = {
+                c: self.table_customer_history.item(row, i).text() if self.table_customer_history.item(row, i) else ""
+                for i, c in enumerate(cols)
+            }
+        except Exception:
+            sel = {}
+        try:
+            mask = (
+                (df["Time"].astype(str) == str(sel.get("Time", ""))) &
+                (df["Input Summary"].astype(str) == str(sel.get("Input Summary", ""))) &
+                (df["Predicted Price"].astype(str) == str(sel.get("Predicted Price", ""))) &
+                (df["Model"].astype(str) == str(sel.get("Model", "")))
+            )
+            idxs = list(df.index[mask])
+            if idxs:
+                df = df.drop(idxs[0]).reset_index(drop=True)
+                self._write_customer_history(df)
+                self.refresh_customer_history_tab()
+        except Exception:
+            pass
+
+    def slot_cust_clear_history(self):
+        confirm = QMessageBox.question(self, "Confirm", "Clear customer's history?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
+        try:
+            self._write_customer_history(df)
+        except Exception:
+            pass
+        self.refresh_customer_history_tab()
+
+    def slot_cust_export_history(self):
+        path = self._customer_history_path()
+        try:
+            df = pd.read_csv(path) if os.path.isfile(path) else pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
+        except Exception:
+            df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
+        out, _ = QFileDialog.getSaveFileName(self, "Export customer history CSV", "", "CSV (*.csv)")
+        if not out:
+            return
+        try:
+            df.to_csv(out, index=False)
+            QMessageBox.information(self, "Success", f"Exported: {out}")
+        except Exception as e:
+            self._error(f"CSV export error: {e}")
 
     def slot_delete_history(self):
         if self.current_role == "customer":
@@ -1034,8 +1276,15 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         if row < 0 or row >= len(self.history_df):
             self._error("Please select a row to delete.")
             return
+        confirm = QMessageBox.question(self, "Confirm", "Delete selected record?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
         self.history_df = self.history_df.drop(self.history_df.index[row]).reset_index(drop=True)
         self.refresh_history_tab()
+        try:
+            self._persist_history()
+        except Exception:
+            pass
 
     def slot_clear_history(self):
         if self.current_role == "customer":
@@ -1047,6 +1296,10 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         if confirm == QMessageBox.StandardButton.Yes:
             self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
             self.refresh_history_tab()
+            try:
+                self._persist_history()
+            except Exception:
+                pass
 
     def slot_export_history(self):
         if self.history_df.empty:
@@ -1064,6 +1317,130 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
     # ---------- Common helpers ----------
     def _error(self, msg: str):
         QMessageBox.critical(self, "Error", msg)
+
+    def _save_admin_ui_state(self):
+        try:
+            import json
+            data_dir = os.path.join(os.path.dirname(__file__), "data")
+            os.makedirs(data_dir, exist_ok=True)
+            state = {}
+            try:
+                state["dataset_items"] = [self.ui.combo_dataset.itemText(i) for i in range(self.ui.combo_dataset.count())]
+                state["dataset_current"] = self.ui.combo_dataset.currentText()
+                state["train_rate"] = int(self.ui.spin_train_rate.value())
+            except Exception:
+                pass
+            try:
+                state["default_model_name"] = self._get_model_default_name()
+                state["combo_default_items"] = [self.ui.combo_set_default_model.itemText(i) for i in range(self.ui.combo_set_default_model.count())]
+            except Exception:
+                pass
+            try:
+                state["model_labels"] = {
+                    "model": self.ui.lbl_current_model.text() if hasattr(self.ui, "lbl_current_model") else "",
+                    "mae": self.ui.lbl_current_model_mae.text() if hasattr(self.ui, "lbl_current_model_mae") else "",
+                    "rmse": self.ui.lbl_current_model_rmse.text() if hasattr(self.ui, "lbl_current_model_rmse") else "",
+                }
+            except Exception:
+                pass
+            try:
+                state["txt_model_metrics"] = self.ui.txt_model_metrics.toPlainText() if hasattr(self.ui, "txt_model_metrics") else ""
+            except Exception:
+                pass
+            try:
+                rows = []
+                tbl = self.ui.table_model_comparison
+                cols = [tbl.horizontalHeaderItem(i).text() for i in range(tbl.columnCount())] if tbl.columnCount() else ["Model", "MAE", "RMSE", "R²"]
+                for r in range(tbl.rowCount()):
+                    row = {}
+                    for c in range(tbl.columnCount()):
+                        it = tbl.item(r, c)
+                        row[cols[c]] = it.text() if it else ""
+                    rows.append(row)
+                state["table_model_comparison"] = rows
+                state["selected_compare_model"] = self.selected_compare_model or ""
+            except Exception:
+                pass
+            with open(os.path.join(data_dir, "admin_ui_state.json"), "w", encoding="utf-8") as f:
+                json.dump(state, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def _load_admin_ui_state(self):
+        try:
+            import json
+            data_dir = os.path.join(os.path.dirname(__file__), "data")
+            path = os.path.join(data_dir, "admin_ui_state.json")
+            if not os.path.isfile(path):
+                return
+            with open(path, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            try:
+                items = list(state.get("dataset_items", []))
+                self.ui.combo_dataset.clear()
+                for s in items:
+                    self.ui.combo_dataset.addItem(str(s))
+                cur = str(state.get("dataset_current", ""))
+                if cur:
+                    idx = self.ui.combo_dataset.findText(cur)
+                    if idx >= 0:
+                        self.ui.combo_dataset.setCurrentIndex(idx)
+                tr = int(state.get("train_rate", int(self.ui.spin_train_rate.value())))
+                self.ui.spin_train_rate.setValue(tr)
+            except Exception:
+                pass
+            try:
+                self.ui.combo_set_default_model.clear()
+                for s in list(state.get("combo_default_items", [])):
+                    self.ui.combo_set_default_model.addItem(str(s))
+                dm = str(state.get("default_model_name", ""))
+                if dm:
+                    idx = self.ui.combo_set_default_model.findText(dm)
+                    if idx >= 0:
+                        self.ui.combo_set_default_model.setCurrentIndex(idx)
+                    try:
+                        self.model_default_name = dm
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            try:
+                labels = state.get("model_labels", {})
+                if hasattr(self.ui, "lbl_current_model"):
+                    self.ui.lbl_current_model.setText(str(labels.get("model", "")))
+                if hasattr(self.ui, "lbl_current_model_mae"):
+                    self.ui.lbl_current_model_mae.setText(str(labels.get("mae", "")))
+                if hasattr(self.ui, "lbl_current_model_rmse"):
+                    self.ui.lbl_current_model_rmse.setText(str(labels.get("rmse", "")))
+            except Exception:
+                pass
+            try:
+                txt = str(state.get("txt_model_metrics", ""))
+                if hasattr(self.ui, "txt_model_metrics"):
+                    self.ui.txt_model_metrics.setPlainText(txt)
+            except Exception:
+                pass
+            try:
+                rows = list(state.get("table_model_comparison", []))
+                tbl = self.ui.table_model_comparison
+                tbl.setRowCount(0)
+                tbl.setColumnCount(4)
+                tbl.setHorizontalHeaderLabels(["Model", "MAE", "RMSE", "R²"])
+                for row in rows:
+                    r = tbl.rowCount()
+                    tbl.insertRow(r)
+                    tbl.setItem(r, 0, QTableWidgetItem(str(row.get("Model", ""))))
+                    tbl.setItem(r, 1, QTableWidgetItem(str(row.get("MAE", ""))))
+                    tbl.setItem(r, 2, QTableWidgetItem(str(row.get("RMSE", ""))))
+                    tbl.setItem(r, 3, QTableWidgetItem(str(row.get("R²", ""))))
+                tbl.resizeColumnsToContents()
+                self.selected_compare_model = str(state.get("selected_compare_model", "")) or None
+                self.compare_results_store = [(str(r.get("Model", "")), float(str(r.get("RMSE", "0") or 0))) for r in rows if r]
+                self.plot_comparison_chart(self.compare_results_store, selected_name=self.selected_compare_model)
+            except Exception:
+                pass
+        except Exception:
+            pass
 
     def _show_login_and_apply_role(self):
         dlg = LoginDialog(self)

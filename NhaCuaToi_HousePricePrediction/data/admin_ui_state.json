@@ -1,0 +1,54 @@
+{
+  "dataset_items": [
+    "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv"
+  ],
+  "dataset_current": "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv",
+  "train_rate": 80,
+  "default_model_name": "XGBoost",
+  "combo_default_items": [
+    "LinearRegression",
+    "RandomForest",
+    "GradientBoosting",
+    "XGBoost",
+    "LightGBM"
+  ],
+  "model_labels": {
+    "model": "Model: XGBoost",
+    "mae": "MAE: 1.4752",
+    "rmse": "RMSE: 1.8484"
+  },
+  "txt_model_metrics": "Completed model evaluation.",
+  "table_model_comparison": [
+    {
+      "Model": "LinearRegression",
+      "MAE": "1.6140",
+      "RMSE": "1.9773",
+      "R²": "0.2034"
+    },
+    {
+      "Model": "RandomForest",
+      "MAE": "1.5386",
+      "RMSE": "1.9659",
+      "R²": "0.2125"
+    },
+    {
+      "Model": "GradientBoosting",
+      "MAE": "1.4903",
+      "RMSE": "1.8475",
+      "R²": "0.3045"
+    },
+    {
+      "Model": "XGBoost",
+      "MAE": "1.4752",
+      "RMSE": "1.8484",
+      "R²": "0.3038"
+    },
+    {
+      "Model": "LightGBM",
+      "MAE": "1.4728",
+      "RMSE": "1.8349",
+      "R²": "0.3140"
+    }
+  ],
+  "selected_compare_model": "RandomForest"
+}

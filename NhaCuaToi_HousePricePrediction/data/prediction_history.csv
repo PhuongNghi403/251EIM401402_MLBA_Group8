@@ -1,0 +1,7 @@
+Time,Input Summary,Predicted Price,Model,User
+2025-11-20 15:20:30,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",8.270515258833305,GradientBoosting,customer
+2025-11-20 15:20:57,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",7.895775048100029,GradientBoosting,customer
+2025-11-20 15:21:02,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",7.895775048100029,GradientBoosting,customer
+2025-11-20 15:21:18,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",4.170535105605286,GradientBoosting,customer
+2025-11-20 15:21:23,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",4.118379812165882,GradientBoosting,customer
+2025-11-20 15:23:30,"Area=100.0, Frontage=5.5, Floors=3.0, Bedrooms=3.0, Bathrooms=2.0",4.477560997009277,XGBoost,admin

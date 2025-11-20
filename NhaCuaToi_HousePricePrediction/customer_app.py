@@ -116,13 +116,33 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             self.ui.btn_export_csv.clicked.connect(self._export_csv)
         if hasattr(self.ui, "btn_export_pdf"):
             self.ui.btn_export_pdf.clicked.connect(self._export_pdf)
+        try:
+            self._load_persisted_history()
+        except Exception:
+            pass
 
         # Tăng tính linh hoạt cho giao diện nhỏ
         self._enhance_responsiveness()
+        ok = False
         try:
-            self._ensure_model_for_customer()
+            ok = self._ensure_model_for_customer()
         except Exception:
-            pass
+            ok = False
+        if not ok:
+            QMessageBox.warning(self, "Not Activate Yet", "Waiting for Admin Handling Data.")
+            try:
+                self.ui.tabWidget.setEnabled(False)
+            except Exception:
+                pass
+        else:
+            try:
+                self.ui.tabWidget.setEnabled(True)
+            except Exception:
+                pass
+            try:
+                self.statusBar().showMessage(f"Default model: {self._get_model_default_name()}")
+            except Exception:
+                pass
 
         # Recommendation: chuẩn bị nguồn dữ liệu và kết nối sự kiện
         try:
@@ -1113,8 +1133,8 @@ class CustomerWindow(QMainWindow, Ui_CustomerHome, PredictionLogicMixin):
             return
         try:
             csv_candidates = [
-                os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv"),
-                os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv"),
+                
+                os.path.join(os.path.dirname(__file__), "data", "raw_value_dataset.csv"),
             ]
             for p in csv_candidates:
                 if os.path.isfile(p):

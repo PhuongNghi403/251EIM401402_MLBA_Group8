@@ -58,6 +58,9 @@ class PredictionLogicMixin:
             return None
 
     def _get_model_default_name(self) -> str:
+        name = getattr(self, "model_default_name", None)
+        if isinstance(name, str) and name.strip():
+            return name
         if hasattr(self, "models_cache") and hasattr(self, "model_default"):
             for name, obj in self.models_cache.items():
                 if obj is self.model_default:
@@ -151,108 +154,41 @@ class PredictionLogicMixin:
             self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         self.history_df = pd.concat([self.history_df, pd.DataFrame([new_row])], ignore_index=True)
         self.refresh_history_tab()
+        try:
+            self._persist_history()
+        except Exception:
+            pass
 
     def _ensure_model_for_customer(self) -> bool:
         if getattr(self, "model_default", None) is not None:
             return True
+        import os, pickle
+        pkl_path = os.path.join(os.path.dirname(__file__), "data", "official_model.pkl")
+        if not os.path.isfile(pkl_path):
+            return False
         try:
-            import os
-            from NhaCuaToi_HousePricePrediction.FileUtils import FileUtils
-            pkl_candidates = [
-                os.path.join(os.path.dirname(__file__), "data", "SaveModelTest1.pkl"),
-                os.path.join(os.path.dirname(__file__), "data", "SaveModelTest2.pkl"),
-            ]
-            for pkl_path in pkl_candidates:
-                if os.path.isfile(pkl_path):
-                    m = FileUtils.loadmodel(pkl_path)
-                    if m is not None:
-                        self.model_default = m
-                        if not getattr(self, "feature_names", None) or len(self.feature_names) != 5:
-                            self.feature_names = [
-                                "Avg Area Income",
-                                "Avg Area House Age",
-                                "Avg Area Number of Rooms",
-                                "Avg Area Number of Bedrooms",
-                                "Area Population",
-                            ]
-                        if not hasattr(self, "models_cache"):
-                            self.models_cache = {}
-                        name = getattr(m, "__class__", type(m)).__name__
-                        self.models_cache[name] = m
-                        return True
+            with open(pkl_path, "rb") as f:
+                m = pickle.load(f)
+        except Exception:
+            return False
+        self.model_default = m
+        # Load meta (model name, etc.) if available
+        try:
+            import json
+            meta_path = os.path.join(os.path.dirname(__file__), "data", "official_model_meta.json")
+            if os.path.isfile(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as mf:
+                    meta = json.load(mf)
+                n = str(meta.get("name", "")).strip()
+                if n:
+                    self.model_default_name = n
         except Exception:
             pass
-        try:
-            import os
-            csv_path = os.path.join(os.path.dirname(__file__), "data", "USA_Housing.csv")
-            if not os.path.isfile(csv_path):
-                csv_path = os.path.join(os.path.dirname(__file__), "data", "SuperCleaned_vietnam_housing_dataset.csv")
-            df = pd.read_csv(csv_path)
-            preferred_feats = [
-                "Avg Area Income",
-                "Avg Area House Age",
-                "Avg Area Number of Rooms",
-                "Avg Area Number of Bedrooms",
-                "Area Population",
-            ]
-            preferred_target = "Price"
-            def normalize(s: str) -> str:
-                return "".join(ch for ch in str(s).lower() if ch.isalnum())
-            norm_cols = {normalize(c): c for c in df.columns}
-            def find_col(name: str):
-                return norm_cols.get(normalize(name))
-            feats = [find_col(n) for n in preferred_feats]
-            feats = [c for c in feats if c is not None]
-            target = find_col(preferred_target)
-            if len(feats) == 5 and target:
-                X_all = df[feats].select_dtypes(include=[np.number])
-                y_all = df[target].astype(float)
-            else:
-                num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-                if len(num_cols) < 2:
-                    raise RuntimeError("Not enough numeric columns to train")
-                target = num_cols[-1]
-                feats = num_cols[:-1][:5]
-                X_all = df[feats]
-                y_all = df[target].astype(float)
-            X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, random_state=42)
-            if LGBMRegressor is not None:
-                m = LGBMRegressor(random_state=42)
-                model_name = "LightGBM"
-            else:
-                m = LinearRegression()
-                model_name = "LinearRegression"
-            m.fit(X_train, y_train)
-            self.model_default = m
-            self.feature_names = feats
-            if not hasattr(self, "models_cache"):
-                self.models_cache = {}
-            self.models_cache[model_name] = m
-            return True
-        except Exception:
-            try:
-                names = [
-                    "Avg Area Income",
-                    "Avg Area House Age",
-                    "Avg Area Number of Rooms",
-                    "Avg Area Number of Bedrooms",
-                    "Area Population",
-                ]
-                rng = np.random.RandomState(42)
-                X = rng.uniform(low=0.0, high=1.0, size=(400, 5))
-                y = X[:, 0] * 100.0 + X[:, 2] * 50.0 + X[:, 3] * 30.0 + X[:, 4] * 0.1 - X[:, 1] * 10.0
-                dfX = pd.DataFrame(X, columns=names)
-                dfy = pd.Series(y.astype(float))
-                m = LinearRegression()
-                m.fit(dfX, dfy)
-                self.model_default = m
-                self.feature_names = names
-                if not hasattr(self, "models_cache"):
-                    self.models_cache = {}
-                self.models_cache["LinearRegression"] = m
-                return True
-            except Exception:
-                return False
+        feats = list(getattr(m, "feature_names_in_", []))
+        if not feats or len(feats) != 5:
+            feats = ["Area", "Frontage", "Floors", "Bedrooms", "Bathrooms"]
+        self.feature_names = feats
+        return True
 
     def refresh_history_tab(self):
         if not hasattr(self.ui, "table_history"):
@@ -300,6 +236,36 @@ class PredictionLogicMixin:
             self.ax_history.set_title("Predicted price trend over time")
             self.ax_history.grid(True, linestyle="--", alpha=0.4)
         self.canvas_history.draw_idle()
+
+    def _history_storage_path(self) -> str:
+        import os
+        role = getattr(self, "current_role", None)
+        if role == "customer":
+            return os.path.join(os.path.dirname(__file__), "data", "customer_prediction_history.csv")
+        return os.path.join(os.path.dirname(__file__), "data", "admin_prediction_history.csv")
+
+    def _load_persisted_history(self):
+        import os
+        path = self._history_storage_path()
+        if not os.path.isfile(path):
+            return
+        try:
+            df = pd.read_csv(path)
+            expected = ["Time", "Input Summary", "Predicted Price", "Model", "User"]
+            if all(c in df.columns for c in expected):
+                self.history_df = df
+                self.refresh_history_tab()
+        except Exception:
+            pass
+
+    def _persist_history(self):
+        import os
+        try:
+            path = self._history_storage_path()
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            self.history_df.to_csv(path, index=False)
+        except Exception:
+            pass
 
     def _apply_theme(self, mode: str):
         # Palette và stylesheet giống MainWindow
@@ -437,6 +403,9 @@ class PredictionLogicMixin:
         if row < 0 or row >= len(df):
             self._error("Please select a row to delete.")
             return
+        confirm = QMessageBox.question(getattr(self, "self", None) or self, "Confirm", "Delete selected record?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
         sel = df.iloc[row]
         mask = (
             (self.history_df["Time"] == sel["Time"]) &
@@ -450,6 +419,10 @@ class PredictionLogicMixin:
             return
         self.history_df = self.history_df.drop(idxs[0]).reset_index(drop=True)
         self.refresh_history_tab()
+        try:
+            self._persist_history()
+        except Exception:
+            pass
 
     def slot_clear_history(self):
         if self.history_df.empty:
@@ -467,6 +440,10 @@ class PredictionLogicMixin:
                 return
             self.history_df = pd.DataFrame(columns=["Time", "Input Summary", "Predicted Price", "Model", "User"])
         self.refresh_history_tab()
+        try:
+            self._persist_history()
+        except Exception:
+            pass
 
     def slot_export_history(self):
         df = self.get_visible_history_df()

@@ -1,0 +1,12 @@
+{
+  "name": "XGBoost",
+  "dataset_path": "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv",
+  "feature_names": [
+    "Area",
+    "Frontage",
+    "Floors",
+    "Bedrooms",
+    "Bathrooms"
+  ],
+  "timestamp": "2025-11-20 16:01:54"
+}
