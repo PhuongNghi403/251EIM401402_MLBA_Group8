@@ -322,7 +322,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             }}
             QLabel#lbl_header_title {{
                 font-weight: 800;
-                font-size: 18px;
+                font-size: 20px;
             }}
             QTabBar::tab {{
                 background: {palette['btn']};
@@ -552,7 +552,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             for c in range(df.shape[1]):
                 val = df.iat[r, c]
                 table.setItem(r, c, QTableWidgetItem("" if pd.isna(val) else str(val)))
-        table.resizeColumnsToContents()
+        try:
+            hdr = table.horizontalHeader()
+            hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            hdr.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            table.verticalHeader().setVisible(False)
+        except Exception:
+            pass
 
     # ---------- Tab 2: Train Results ----------
     def run_training_process(
@@ -683,7 +692,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             table.setItem(r, 0, QTableWidgetItem(str(results_df.iloc[r, 0])))
             table.setItem(r, 1, QTableWidgetItem(str(results_df.iloc[r, 1])))
             table.setItem(r, 2, QTableWidgetItem(str(results_df.iloc[r, 2])))
-        table.resizeColumnsToContents()
+        try:
+            hdr_tr = table.horizontalHeader()
+            hdr_tr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            hdr_tr.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            table.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         try:
             self._save_admin_ui_state()
         except Exception:
@@ -704,6 +722,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
         self.ui.table_model_comparison.setColumnCount(4)
         self.ui.table_model_comparison.setHorizontalHeaderLabels(["Model", "MAE", "RMSE", "R²"])
+        try:
+            hdr_mc = self.ui.table_model_comparison.horizontalHeader()
+            hdr_mc.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            hdr_mc.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            self.ui.table_model_comparison.verticalHeader().setVisible(False)
+        except Exception:
+            pass
 
         model_list = ["LinearRegression", "RandomForest", "GradientBoosting"]
         if XGBRegressor is not None:
@@ -728,7 +756,12 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             if self.ui.combo_set_default_model.findText(name) < 0:
                 self.ui.combo_set_default_model.addItem(name)
 
-        self.ui.table_model_comparison.resizeColumnsToContents()
+        # keep columns evenly distributed inside the group box
+        try:
+            hdr_mc = self.ui.table_model_comparison.horizontalHeader()
+            hdr_mc.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
         self.compare_results_store = results_for_plot
         self.plot_comparison_chart(results_for_plot, selected_name=self.selected_compare_model)
         self.ui.txt_model_metrics.setPlainText("Completed model evaluation.")
@@ -1066,7 +1099,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         for r in range(len(df)):
             for c, col in enumerate(["Time", "Input Summary", "Predicted Price", "Model"]):
                 table.setItem(r, c, QTableWidgetItem(str(df.iloc[r][col])))
-        table.resizeColumnsToContents()
+        try:
+            hdr = table.horizontalHeader()
+            hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+            hdr.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            table.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.plot_history_trend()
 
     def plot_history_trend(self):
@@ -1168,7 +1210,13 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                 for c, col in enumerate(["Time", "Input Summary", "Predicted Price", "Model"]):
                     table.setItem(r, c, QTableWidgetItem(str(df.iloc[r][col]) if col in df.columns else ""))
             try:
-                table.resizeColumnsToContents()
+                hdr = table.horizontalHeader()
+                hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+                hdr.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            except Exception:
+                pass
+            try:
+                table.verticalHeader().setVisible(False)
             except Exception:
                 pass
             try:

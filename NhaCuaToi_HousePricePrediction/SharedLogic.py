@@ -309,7 +309,7 @@ class PredictionLogicMixin:
             }}
             QLabel#lbl_header_title {{
                 font-weight: 800;
-                font-size: 18px;
+                font-size: 20px;
             }}
             QWidget#widget_house_inline_container QCheckBox {{
                 color: {'#000000' if mode=='dark' else palette['text']};

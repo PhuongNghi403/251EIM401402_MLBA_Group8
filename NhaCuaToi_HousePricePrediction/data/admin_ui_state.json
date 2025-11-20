@@ -1,10 +1,11 @@
 {
   "dataset_items": [
-    "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv"
+    "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv",
+    "C:/Users/Lenovo/Downloads/raw_value_dataset.csv"
   ],
-  "dataset_current": "E:/251EIM401402_MLBA_Group8/NhaCuaToi_HousePricePrediction/data/raw_value_dataset.csv",
+  "dataset_current": "C:/Users/Lenovo/Downloads/raw_value_dataset.csv",
   "train_rate": 80,
-  "default_model_name": "XGBoost",
+  "default_model_name": "LinearRegression",
   "combo_default_items": [
     "LinearRegression",
     "RandomForest",
@@ -13,9 +14,9 @@
     "LightGBM"
   ],
   "model_labels": {
-    "model": "Model: XGBoost",
-    "mae": "MAE: 1.4752",
-    "rmse": "RMSE: 1.8484"
+    "model": "Model: LinearRegression",
+    "mae": "MAE: 1.6140",
+    "rmse": "RMSE: 1.9773"
   },
   "txt_model_metrics": "Completed model evaluation.",
   "table_model_comparison": [
@@ -28,8 +29,8 @@
     {
       "Model": "RandomForest",
       "MAE": "1.5386",
-      "RMSE": "1.9659",
-      "R²": "0.2125"
+      "RMSE": "1.9658",
+      "R²": "0.2126"
     },
     {
       "Model": "GradientBoosting",
@@ -50,5 +51,5 @@
       "R²": "0.3140"
     }
   ],
-  "selected_compare_model": "GradientBoosting"
+  "selected_compare_model": ""
 }

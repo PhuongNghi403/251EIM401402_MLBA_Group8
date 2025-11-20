@@ -1,5 +1,4 @@
 Time,Input Summary,Predicted Price,Model,User
-2025-11-20 15:43:28,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",3.525753214409384,LightGBM,customer
 2025-11-20 15:44:07,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",4.3438108957009725,LightGBM,customer
 2025-11-20 15:57:39,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",3.6114516020256406,LightGBM,customer
 2025-11-20 15:57:51,"AvgAreaIncome=0.0, AvgAreaHouseAge=0.0, AvgAreaNumRooms=0.0, AvgAreaNumBedrooms=0.0, AreaPopulation=0.0",5.795654826671943,LightGBM,customer

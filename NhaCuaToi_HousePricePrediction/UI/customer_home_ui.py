@@ -19,6 +19,13 @@ class Ui_CustomerHome(object):
         self.lbl_header_title.setObjectName("lbl_header_title")
         self.lbl_header_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.lbl_header_title.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Preferred))
+        _hdr_font = QtWidgets.QApplication.font()
+        try:
+            _hdr_font = QtWidgets.QApplication.font()
+            _hdr_font.setPointSize(20)
+        except Exception:
+            pass
+        self.lbl_header_title.setFont(_hdr_font)
         self.hbox_topbar.addWidget(self.lbl_header_title)
         right_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.hbox_topbar.addItem(right_spacer)
@@ -111,6 +118,16 @@ class Ui_CustomerHome(object):
             pass
         self.vbox_history_details.addWidget(self.table_history)
         self.vbox_history.addWidget(self.group_history_details)
+        try:
+            self.group_history_details.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding))
+            self.table_history.setMinimumHeight(300)
+        except Exception:
+            pass
+        try:
+            self.vbox_history.setStretch(0, 1)
+            self.vbox_history.setStretch(1, 2)
+        except Exception:
+            pass
         self.tabWidget.addTab(self.tab_history, "Prediction History")
 
         self.tab_map = QtWidgets.QWidget()

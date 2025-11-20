@@ -29,6 +29,9 @@ class Ui_MainWindow(object):
         self.lbl_header_title.setObjectName("lbl_header_title")
         self.lbl_header_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.lbl_header_title.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Preferred))
+        _hdr_font = QtGui.QFont()
+        _hdr_font.setPointSize(20)
+        self.lbl_header_title.setFont(_hdr_font)
         self.hbox_theme_toggle.addWidget(self.lbl_header_title)
         right_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.hbox_theme_toggle.addItem(right_spacer)
@@ -60,6 +63,11 @@ class Ui_MainWindow(object):
         self.group_dataset_config = QtWidgets.QGroupBox(parent=self.tab_dataset)
         self.group_dataset_config.setObjectName("group_dataset_config")
         self.group_dataset_config.setTitle("Load Dataset & Config")
+        self.group_dataset_config.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        font_ds_title = QtGui.QFont()
+        font_ds_title.setPointSize(12)
+        font_ds_title.setBold(True)
+        self.group_dataset_config.setFont(font_ds_title)
         self.gridLayout_dataset_config = QtWidgets.QGridLayout(self.group_dataset_config)
         self.gridLayout_dataset_config.setObjectName("gridLayout_dataset_config")
 
@@ -107,6 +115,8 @@ class Ui_MainWindow(object):
 
         self.group_dataset_preview = QtWidgets.QGroupBox(parent=self.tab_dataset)
         self.group_dataset_preview.setTitle("Preview Dataset")
+        self.group_dataset_preview.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.group_dataset_preview.setFont(font_ds_title)
         self.verticalLayout_preview = QtWidgets.QVBoxLayout(self.group_dataset_preview)
         self.verticalLayout_preview.setObjectName("verticalLayout_preview")
 
@@ -116,6 +126,15 @@ class Ui_MainWindow(object):
         self.table_dataset_preview.setSizePolicy(sizeExpand)
         self.table_dataset_preview.setColumnCount(0)
         self.table_dataset_preview.setRowCount(0)
+        try:
+            hdr_ds = self.table_dataset_preview.horizontalHeader()
+            hdr_ds.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
+        try:
+            self.table_dataset_preview.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.verticalLayout_preview.addWidget(self.table_dataset_preview)
 
         self.verticalLayout_tab1.addWidget(self.group_dataset_preview)
@@ -139,6 +158,11 @@ class Ui_MainWindow(object):
 
         self.group_model_metrics = QtWidgets.QGroupBox(parent=self.tab_train_results)
         self.group_model_metrics.setTitle("Model Metrics (Default: Linear Regression)")
+        self.group_model_metrics.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        font_group12 = QtGui.QFont()
+        font_group12.setPointSize(12)
+        font_group12.setBold(True)
+        self.group_model_metrics.setFont(font_group12)
         self.vbox_metrics = QtWidgets.QVBoxLayout(self.group_model_metrics)
 
         self.txt_model_metrics = QtWidgets.QTextEdit(parent=self.group_model_metrics)
@@ -152,20 +176,23 @@ class Ui_MainWindow(object):
         self.btn_save_model.setSizePolicy(sizeFixed)
         self.vbox_metrics.addWidget(self.btn_save_model)
 
-        self.label_trained_models = QtWidgets.QLabel(parent=self.group_model_metrics)
-        self.label_trained_models.setObjectName("label_trained_models")
-        self.label_trained_models.setText("Select Trained Model:")
-        self.vbox_metrics.addWidget(self.label_trained_models)
-
-        self.combo_trained_models = QtWidgets.QComboBox(parent=self.group_model_metrics)
+        self.group_select_trained = QtWidgets.QGroupBox(parent=self.group_model_metrics)
+        self.group_select_trained.setTitle("Select Trained Model")
+        self.group_select_trained.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.vbox_select_trained = QtWidgets.QVBoxLayout(self.group_select_trained)
+        
+        self.combo_trained_models = QtWidgets.QComboBox(parent=self.group_select_trained)
         self.combo_trained_models.setObjectName("combo_trained_models")
         self.combo_trained_models.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
-        self.vbox_metrics.addWidget(self.combo_trained_models)
+        self.vbox_select_trained.addWidget(self.combo_trained_models)
+        self.vbox_metrics.addWidget(self.group_select_trained)
 
         self.hbox_train_results.addWidget(self.group_model_metrics)
 
         self.group_train_results_table = QtWidgets.QGroupBox(parent=self.tab_train_results)
         self.group_train_results_table.setTitle("Test Set Results Table")
+        self.group_train_results_table.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.group_train_results_table.setFont(font_group12)
         self.vbox_train_table = QtWidgets.QVBoxLayout(self.group_train_results_table)
 
         self.table_train_results = QtWidgets.QTableWidget(parent=self.group_train_results_table)
@@ -176,6 +203,15 @@ class Ui_MainWindow(object):
         self.table_train_results.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem())
         self.table_train_results.setHorizontalHeaderItem(1, QtWidgets.QTableWidgetItem())
         self.table_train_results.setHorizontalHeaderItem(2, QtWidgets.QTableWidgetItem())
+        try:
+            hdr_tr = self.table_train_results.horizontalHeader()
+            hdr_tr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
+        try:
+            self.table_train_results.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.vbox_train_table.addWidget(self.table_train_results)
 
         self.hbox_train_results.addWidget(self.group_train_results_table)
@@ -192,6 +228,11 @@ class Ui_MainWindow(object):
 
         self.group_run_select_model = QtWidgets.QGroupBox(parent=self.tab_model_compare)
         self.group_run_select_model.setTitle("Run & Select Model")
+        self.group_run_select_model.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        font_mc_title = QtGui.QFont()
+        font_mc_title.setPointSize(12)
+        font_mc_title.setBold(True)
+        self.group_run_select_model.setFont(font_mc_title)
         self.vbox_run_select = QtWidgets.QVBoxLayout(self.group_run_select_model)
 
         self.btn_evaluate_all_models = QtWidgets.QPushButton(parent=self.group_run_select_model)
@@ -205,6 +246,15 @@ class Ui_MainWindow(object):
         self.table_model_comparison.setRowCount(0)
         for i in range(4):
             self.table_model_comparison.setHorizontalHeaderItem(i, QtWidgets.QTableWidgetItem())
+        try:
+            hdr_mc = self.table_model_comparison.horizontalHeader()
+            hdr_mc.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
+        try:
+            self.table_model_comparison.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.vbox_run_select.addWidget(self.table_model_comparison)
 
         
@@ -213,6 +263,8 @@ class Ui_MainWindow(object):
 
         self.group_analysis_charts = QtWidgets.QGroupBox(parent=self.tab_model_compare)
         self.group_analysis_charts.setTitle("Analysis Charts")
+        self.group_analysis_charts.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.group_analysis_charts.setFont(font_mc_title)
         self.vbox_analysis_charts = QtWidgets.QVBoxLayout(self.group_analysis_charts)
         self.analysis_scroll_area = QtWidgets.QScrollArea(parent=self.group_analysis_charts)
         self.analysis_scroll_area.setObjectName("analysis_scroll_area")
@@ -284,6 +336,11 @@ class Ui_MainWindow(object):
 
         self.group_input_house = QtWidgets.QGroupBox(parent=self.tab_predict)
         self.group_input_house.setTitle("Input House Information")
+        self.group_input_house.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        font_group_title = QtGui.QFont()
+        font_group_title.setPointSize(12)
+        font_group_title.setBold(True)
+        self.group_input_house.setFont(font_group_title)
         self.formLayout_inputs = QtWidgets.QFormLayout(self.group_input_house)
 
         self.label_area = QtWidgets.QLabel(parent=self.group_input_house)
@@ -331,10 +388,28 @@ class Ui_MainWindow(object):
         self.formLayout_inputs.setWidget(4, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_bathrooms)
         self.formLayout_inputs.setWidget(4, QtWidgets.QFormLayout.ItemRole.FieldRole, self.input_bathrooms)
 
+        self.lbl_house_image = QtWidgets.QLabel(parent=self.group_input_house)
+        self.lbl_house_image.setObjectName("lbl_house_image")
+        self.lbl_house_image.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.lbl_house_image.setMinimumHeight(240)
+        self.lbl_house_image.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding))
+        try:
+            import os
+            img_base = os.path.dirname(os.path.dirname(__file__))
+            img_path = os.path.join(img_base, "ttad.png")
+            pix = QtGui.QPixmap(img_path)
+            if pix and not pix.isNull():
+                self.lbl_house_image.setPixmap(pix.scaled(480, 320, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
+        except Exception:
+            pass
+        self.formLayout_inputs.addRow(self.lbl_house_image)
+
         self.hbox_predict.addWidget(self.group_input_house)
 
         self.group_predict_actions = QtWidgets.QGroupBox(parent=self.tab_predict)
-        self.group_predict_actions.setTitle("Prediction Results & Actions")
+        self.group_predict_actions.setTitle("Prediction Results: Actions")
+        self.group_predict_actions.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.group_predict_actions.setFont(font_group_title)
         self.vbox_predict_actions = QtWidgets.QVBoxLayout(self.group_predict_actions)
         # Hàng chọn model mặc định đặt lên đầu và thu gọn khoảng cách
         self.hbox_default_model = QtWidgets.QHBoxLayout()
@@ -351,15 +426,34 @@ class Ui_MainWindow(object):
 
         self.group_current_model = QtWidgets.QGroupBox(parent=self.group_predict_actions)
         self.group_current_model.setTitle("Current Model Information")
+        self.group_current_model.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        font_title12 = QtGui.QFont()
+        font_title12.setPointSize(12)
+        font_title12.setBold(False)
+        self.group_current_model.setFont(font_title12)
+        self.group_current_model.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
+        self.group_current_model.setMaximumHeight(220)
         self.vbox_current_model = QtWidgets.QVBoxLayout(self.group_current_model)
+        self.vbox_current_model.setContentsMargins(12, 10, 12, 10)
+        self.vbox_current_model.setSpacing(8)
+        # Tăng cỡ chữ và làm đậm cho các label thông tin
+        font_info = QtGui.QFont()
+        font_info.setPointSize(12)
+        font_info.setBold(True)
         self.lbl_current_model = QtWidgets.QLabel(parent=self.group_current_model)
         self.lbl_current_model.setText("Model:")
+        self.lbl_current_model.setFont(font_info)
+        self.lbl_current_model.setStyleSheet("color: #000000;")
         self.vbox_current_model.addWidget(self.lbl_current_model)
         self.lbl_current_model_mae = QtWidgets.QLabel(parent=self.group_current_model)
         self.lbl_current_model_mae.setText("MAE:")
+        self.lbl_current_model_mae.setFont(font_info)
+        self.lbl_current_model_mae.setStyleSheet("color: #000000;")
         self.vbox_current_model.addWidget(self.lbl_current_model_mae)
         self.lbl_current_model_rmse = QtWidgets.QLabel(parent=self.group_current_model)
         self.lbl_current_model_rmse.setText("RMSE:")
+        self.lbl_current_model_rmse.setFont(font_info)
+        self.lbl_current_model_rmse.setStyleSheet("color: #000000;")
         self.vbox_current_model.addWidget(self.lbl_current_model_rmse)
         self.vbox_predict_actions.addWidget(self.group_current_model)
 
@@ -367,6 +461,8 @@ class Ui_MainWindow(object):
         # Group: Quick Prediction (contains Predict button and caption label)
         self.group_quick_predict = QtWidgets.QGroupBox(parent=self.group_predict_actions)
         self.group_quick_predict.setTitle("Quick Prediction")
+        self.group_quick_predict.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.group_quick_predict.setFont(font_title12)
         # Giới hạn chiều cao để group box gọn gàng và không nở quá lớn
         self.group_quick_predict.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed))
         self.group_quick_predict.setMaximumHeight(200)
@@ -433,6 +529,11 @@ class Ui_MainWindow(object):
 
         self.group_history_chart = QtWidgets.QGroupBox(parent=self.tab_history)
         self.group_history_chart.setTitle("History Trend Chart")
+        self.group_history_chart.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        font_hist = QtGui.QFont()
+        font_hist.setPointSize(12)
+        font_hist.setBold(True)
+        self.group_history_chart.setFont(font_hist)
         self.vbox_history_chart = QtWidgets.QVBoxLayout(self.group_history_chart)
         self.chart_view_history = QtWidgets.QWidget(parent=self.group_history_chart)
         self.chart_view_history.setObjectName("chart_view_history")
@@ -442,6 +543,8 @@ class Ui_MainWindow(object):
 
         self.group_history_details = QtWidgets.QGroupBox(parent=self.tab_history)
         self.group_history_details.setTitle("History Details")
+        self.group_history_details.setStyleSheet("QGroupBox { margin-top: 24px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; font-weight: 900; font-size: 12px; color: #4c0c24; padding: 2px 10px; }")
+        self.group_history_details.setFont(font_hist)
         self.vbox_history_details = QtWidgets.QVBoxLayout(self.group_history_details)
 
         self.table_history = QtWidgets.QTableWidget(parent=self.group_history_details)
@@ -451,6 +554,15 @@ class Ui_MainWindow(object):
         self.table_history.setRowCount(0)
         for i in range(4):
             self.table_history.setHorizontalHeaderItem(i, QtWidgets.QTableWidgetItem())
+        try:
+            hdr_hist = self.table_history.horizontalHeader()
+            hdr_hist.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        except Exception:
+            pass
+        try:
+            self.table_history.verticalHeader().setVisible(False)
+        except Exception:
+            pass
         self.vbox_history_details.addWidget(self.table_history)
 
         self.group_history_actions = QtWidgets.QGroupBox(parent=self.group_history_details)
@@ -478,8 +590,13 @@ class Ui_MainWindow(object):
 
         self.vbox_history_details.addWidget(self.group_history_actions)
         self.vbox_history.addWidget(self.group_history_details)
-        self.vbox_history.setStretch(0, 2)
-        self.vbox_history.setStretch(1, 1)
+        try:
+            self.group_history_details.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding))
+            self.table_history.setMinimumHeight(280)
+        except Exception:
+            pass
+        self.vbox_history.setStretch(0, 1)
+        self.vbox_history.setStretch(1, 2)
 
         self.tabWidget.addTab(self.tab_history, "Prediction History")
 
