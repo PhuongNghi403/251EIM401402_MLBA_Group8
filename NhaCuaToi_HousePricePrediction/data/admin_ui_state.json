@@ -50,5 +50,5 @@
       "R²": "0.3140"
     }
   ],
-  "selected_compare_model": "RandomForest"
+  "selected_compare_model": "GradientBoosting"
 }

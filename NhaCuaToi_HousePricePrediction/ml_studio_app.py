@@ -138,7 +138,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
 
         # Matplotlib canvases
         self.canvas_compare, self.ax_compare = self._init_canvas_in(self.ui.chart_view_compare)
-        self.canvas_history, self.ax_history = self._init_canvas_in(self.ui.chart_view_history)
+        
         # Inline analysis canvases for selected model
         self.canvas_actual, self.ax_actual = self._init_canvas_in(self.ui.chart_view_actual_pred)
         self.canvas_resid, self.ax_resid = self._init_canvas_in(self.ui.chart_view_residuals_compare)
@@ -171,6 +171,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             self._load_admin_ui_state()
         except Exception:
             pass
+        self.ui.tabWidget.setCurrentIndex(0)
 
     def _enhance_responsiveness(self):
         from PyQt6 import QtWidgets
@@ -1073,7 +1074,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
         text_color = "#FFFFFF" if self._theme_mode == "dark" else "#2b2342"
         df = self.get_visible_history_df()
         if df.empty:
-            self.ax_history.set_xlabel("Prediction #")
+            self.ax_history.set_xlabel("Time")
             self.ax_history.set_ylabel("Predicted Price")
             self.ax_history.set_title("Predicted price trend over time")
             self.ax_history.grid(True, linestyle="--", alpha=0.4)
@@ -1082,7 +1083,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
             y = df["Predicted Price"].astype(float).values
             x = np.arange(len(y))
             self.ax_history.plot(x, y, marker="o", color=self.history_line_color)
-            self.ax_history.set_xlabel("Prediction #")
+            self.ax_history.set_xlabel("Time")
             self.ax_history.set_ylabel("Predicted Price")
             self.ax_history.set_title("Predicted price trend over time")
             self.ax_history.grid(True, linestyle="--", alpha=0.4)
@@ -1420,7 +1421,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                     self.ui.txt_model_metrics.setPlainText(txt)
             except Exception:
                 pass
-            try:
+            """try:
                 rows = list(state.get("table_model_comparison", []))
                 tbl = self.ui.table_model_comparison
                 tbl.setRowCount(0)
@@ -1438,7 +1439,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, PredictionLogicMixin):
                 self.compare_results_store = [(str(r.get("Model", "")), float(str(r.get("RMSE", "0") or 0))) for r in rows if r]
                 self.plot_comparison_chart(self.compare_results_store, selected_name=self.selected_compare_model)
             except Exception:
-                pass
+                pass"""
         except Exception:
             pass
 

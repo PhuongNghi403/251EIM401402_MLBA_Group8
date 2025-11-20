@@ -429,6 +429,8 @@ class Ui_MainWindow(object):
         self.tab_history = QtWidgets.QWidget()
         self.vbox_history = QtWidgets.QVBoxLayout(self.tab_history)
 
+        # History Trend Chart removed per request
+
         self.group_history_chart = QtWidgets.QGroupBox(parent=self.tab_history)
         self.group_history_chart.setTitle("History Trend Chart")
         self.vbox_history_chart = QtWidgets.QVBoxLayout(self.group_history_chart)
